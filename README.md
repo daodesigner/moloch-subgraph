@@ -15,6 +15,3 @@ Moloch V2 Subgraph for DDQ
 
 Welcome to FlatLand:
 http://manifesto.designerdao.eth.link/
-
-License:
-Contact designerdao.eth@gmail.com for License NFT
