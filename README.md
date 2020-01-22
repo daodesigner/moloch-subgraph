@@ -16,4 +16,4 @@ Welcome to FlatLand:
 http://manifesto.designerdao.eth.link/
 
 License:
-http://how-it-works.designerdao.eth.link/
+Contact designerdao.eth@gmail.com for License NFT
