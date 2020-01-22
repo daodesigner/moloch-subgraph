@@ -1,0 +1,147 @@
+type Moloch @entity {
+  id: ID!
+  summoner: Bytes!
+  summoningTime: BigInt!
+  periodDuration: BigInt!
+  votingPeriodLength: BigInt!
+  gracePeriodLength: BigInt!
+  proposalDeposit: BigInt!
+  dilutionBound: BigInt!
+  processingReward: BigInt!
+  depositToken: Bytes!
+
+  "NOTE: Resolves to all Token entities that include the DAO's ID."
+  tokens: [Token!]! @derivedFrom(field: "moloch")
+  "NOTE: Resolves to all Member entities that include the DAO's id."
+  members: [Member!] @derivedFrom(field: "moloch")
+  "NOTE: Resolves to all Token balances that include the DAO's id."
+  tokenBalances: [TokenBalance!] @derivedFrom(field: "moloch")
+  "NOTE: Resolves to all Proposals that include the DAO's id."
+  proposals: [Proposal!] @derivedFrom(field: "moloch")
+
+
+  "NOTE: SC Semantics: guild bank address is 0xDEAD"
+  guildTokenBalance: [TokenBalance!] 
+  "NOTE: SC Semantics: guild bank address is 0xBEEF"
+  escrowTokenBalance: [TokenBalance!]
+  
+  "TODO: update on all event handlers -- currentPeriod = now.sub(summoningTime).div(periodDuration)"
+  currentPeriod: BigInt!
+  totalShares: BigInt!
+  totalLoot: BigInt!
+  proposalCount: BigInt!
+  proposalQueueCount: BigInt!
+
+  "NOTE: No flag for new member proposal check if applicant address is already a member"
+  proposedToJoin: [Proposal!]
+  proposedToWhitelist: [Proposal!]
+  proposedToKick: [Proposal!]
+  proposedToFund: [Proposal!]
+}
+
+type TokenBalance @entity {
+  id: ID!
+  "NOTE: tracks token balances for multiple Moloch instances (no change required for upgrade)"
+  moloch: Moloch!
+  token: Token!
+  tokenBalance: BigInt!
+  member: Member
+  guildBank: Boolean!
+  ecrowBank: Boolean!
+  memberBank: Boolean!
+}
+
+type Token @entity {
+  id: ID!
+  "TODO: moloch DAOs share token refferences"
+  moloch: Moloch!
+  tokenAddress: Bytes!
+  whitelisted: Boolean!
+  "TODO: pull in from etherscan"
+  ticker: String
+  logo: String
+  details: String
+  approved: Proposal
+}
+
+type Member @entity {
+  id: ID!
+  "TODO: members can be a part of multiple molochs"
+  moloch: Moloch!
+  memberAddress: Bytes!
+  delegateKey: Bytes!
+  shares: BigInt!
+  loot: BigInt!
+  exists: Boolean!
+  highestIndexYesVote: BigInt!
+  tokenTribute: BigInt!
+  didRagequit: Boolean!
+  votes: [Vote!] @derivedFrom(field: "member")
+  submissions: [Proposal!] @derivedFrom(field: "member")
+  tokenBalances: [TokenBalance!] @derivedFrom(field: "member")
+  proposedToKick: Boolean
+  jailed: Proposal
+}
+
+type Vote @entity {
+  id: ID!
+  timestamp:String!
+  proposal: Proposal!
+  member: Member!
+  uintVote: Int!
+}
+
+
+type Proposal @entity {
+  id: ID!
+  "NOTE: tracks Proposals for multiple Moloch instances (no change required for upgrade)"
+  proposalIndex: BigInt!
+  proposalQueueIndex: BigInt
+  moloch: Moloch!
+  timestamp: String!
+  member: Member!
+  memberAddress: Bytes!
+  delegateKey: Bytes!
+
+  applicant: Bytes!
+  proposer: Bytes!
+  sponsor: Bytes!
+  sharesRequested: BigInt!
+  lootRequested: BigInt!
+  tributeOffered: BigInt!
+  tributeToken: Bytes!
+  paymentRequested: BigInt!
+  paymentToken: Bytes!
+  startingPeriod: BigInt!
+  yesVotes: BigInt!
+  noVotes: BigInt!
+
+  sponsored: Boolean! #flags[0]
+  processed: Boolean! #flags[1]
+  didPass:   Boolean! #flags[2]
+  cancelled: Boolean! #flags[3]
+  whitelist: Boolean! #flags[4]
+  guildkick: Boolean! #flags[5]
+  newMember: Boolean! #no flag yet
+
+  details: String!
+  maxTotalSharesAndLootAtYesVote: BigInt!
+  votes: [Vote!] @derivedFrom(field: "proposal")
+  yesShares: BigInt!
+  noShares: BigInt!
+
+  "TODO: might as well sort on back end and make front end lives easier? make block update function that updates proposals on period change"
+  "NOTE: Proposals that are not sponsored do not make it into the proposal queue"
+  "NOTE: After $sponsorProposal is called  $proposal.startingPeriod is set and a voting period of $votingPeriodLength begins"
+  "NOTE: After $votingPeriodLength begining after $sponsorProposal a grace period of $gracePeriodLength begins, there is no event to listen to to trigger this change"
+  "NOTE: Finally $processProposal can be called after $votingPeriodLength + $gracePeriodLength from $proposal.startingPeriod"
+  # stage: ProposalStage 
+  
+}
+
+enum ProposalStage {
+  NOTSPONSORED
+  VOTINGPERIOD
+  GRACEPERIOD
+  PROCESSED
+}

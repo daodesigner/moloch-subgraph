@@ -1,0 +1,24 @@
+{
+  "name": "moloch",
+  "version": "0.1.0",
+  "scripts": {
+    "build-contract": "solc contracts/Moloch.sol --abi -o abis --overwrite && solc contracts/Moloch.sol --bin -o bin --overwrite",
+    "create": "graph create daodesigner/moloch-subgraph --node https://api.thegraph.com/deploy/",
+    "create-local": "graph create daodesigner/moloch-subgraph --node http://127.0.0.1:8020",
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy daodesigner/moloch-subgraph --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "deploy-local": "graph deploy daodesigner/moloch-subgraph --ipfs http://localhost:5001 --node http://127.0.0.1:8020"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.17.1",
+    "@graphprotocol/graph-ts": "^0.17.0"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-register": "^6.26.0",
+    "truffle": "^5.0.4",
+    "truffle-contract": "^4.0.5",
+    "truffle-hdwallet-provider": "^1.0.4"
+  }
+}

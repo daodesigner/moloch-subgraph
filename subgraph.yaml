@@ -1,0 +1,47 @@
+specVersion: 0.0.2
+description: Moloch V2 Subgraph to support sultiple tokens and new proposal types
+repository: https://github.com/daodesigner/moloch-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Moloch
+    network: mainnet
+    source:
+      address: '0x2E645469f354BB4F5c8a05B3b30A929361cf77eC'
+      abi: Moloch
+      startBlock: 9308736
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - Meta
+        - TokenBalance
+        - Token
+        - Member
+        - Vote
+        - Proposal
+      abis:
+        - name: Moloch
+          file: ./abis/Moloch.json
+      eventHandlers:
+        - event: SummonComplete(indexed address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address,address[])
+          handler: handleSummonComplete
+        - event: SubmitProposal(uint256,indexed address,indexed address,indexed address,uint256,uint256,uint256,address,uint256,address,bool[6])
+          handler: handleSubmitProposal
+        - event: SubmitVote(indexed uint256,indexed address,indexed address,uint8)
+          handler: handleSubmitVote
+        - event: SponsorProposal(indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleSponsorProposal
+       
+        - event: ProcessProposal(indexed uint256,indexed uint256,bool)
+          handler: handleProcessProposal
+        - event: ProcessGuildKickProposal(indexed uint256,indexed uint256,bool)
+          handler: handleProcessGuildKickProposal
+        - event: ProcessWhitelistProposal(indexed uint256,indexed uint256,bool)
+          handler: handleProcessWhitelistProposal
+        - event: UpdateDelegateKey(indexed address,address)
+          handler: handleUpdateDelegateKey
+
+      file: ./src/mapping.ts
