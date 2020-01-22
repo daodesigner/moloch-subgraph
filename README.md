@@ -1,5 +1,5 @@
 # moloch-subgraph
-Moloch V2 Subgraph for DAOs Done Quick  
+Moloch V2 Subgraph for DDQ
 
 
 
