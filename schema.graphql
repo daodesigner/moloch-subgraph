@@ -9,6 +9,7 @@ type Moloch @entity {
   dilutionBound: BigInt!
   processingReward: BigInt!
   depositToken: Bytes!
+  approvedTokens:[Token!]!
 
   "NOTE: Resolves to all Token entities that include the DAO's ID."
   tokens: [Token!]! @derivedFrom(field: "moloch")
@@ -37,6 +38,7 @@ type Moloch @entity {
   proposedToWhitelist: [Proposal!]
   proposedToKick: [Proposal!]
   proposedToFund: [Proposal!]
+  proposedToTrade: [Proposal!]
 }
 
 type TokenBalance @entity {
@@ -73,7 +75,7 @@ type Member @entity {
   shares: BigInt!
   loot: BigInt!
   exists: Boolean!
-  highestIndexYesVote: BigInt!
+  highestIndexYesVote: Proposal
   tokenTribute: BigInt!
   didRagequit: Boolean!
   votes: [Vote!] @derivedFrom(field: "member")
@@ -123,6 +125,7 @@ type Proposal @entity {
   whitelist: Boolean! #flags[4]
   guildkick: Boolean! #flags[5]
   newMember: Boolean! #no flag yet
+  trade:     Boolean! #not flag yet
 
   details: String!
   maxTotalSharesAndLootAtYesVote: BigInt!
@@ -130,18 +133,18 @@ type Proposal @entity {
   yesShares: BigInt!
   noShares: BigInt!
 
-  "TODO: might as well sort on back end and make front end lives easier? make block update function that updates proposals on period change"
-  "NOTE: Proposals that are not sponsored do not make it into the proposal queue"
-  "NOTE: After $sponsorProposal is called  $proposal.startingPeriod is set and a voting period of $votingPeriodLength begins"
-  "NOTE: After $votingPeriodLength begining after $sponsorProposal a grace period of $gracePeriodLength begins, there is no event to listen to to trigger this change"
-  "NOTE: Finally $processProposal can be called after $votingPeriodLength + $gracePeriodLength from $proposal.startingPeriod"
+  # "TODO: might as well sort on back end and make front end lives easier? make block update function that updates proposals on period change"
+  # "NOTE: Proposals that are not sponsored do not make it into the proposal queue"
+  # "NOTE: After $sponsorProposal is called  $proposal.startingPeriod is set and a voting period of $votingPeriodLength begins"
+  # "NOTE: After $votingPeriodLength begining after $sponsorProposal a grace period of $gracePeriodLength begins, there is no event to listen to to trigger this change"
+  # "NOTE: Finally $processProposal can be called after $votingPeriodLength + $gracePeriodLength from $proposal.startingPeriod"
   # stage: ProposalStage 
   
 }
 
-enum ProposalStage {
-  NOTSPONSORED
-  VOTINGPERIOD
-  GRACEPERIOD
-  PROCESSED
-}
+# enum ProposalStage {
+#   NOTSPONSORED
+#   VOTINGPERIOD
+#   GRACEPERIOD
+#   PROCESSED
+# }

@@ -123,6 +123,15 @@ export class Moloch extends Entity {
     this.set("depositToken", Value.fromBytes(value));
   }
 
+  get approvedTokens(): Array<string> {
+    let value = this.get("approvedTokens");
+    return value.toStringArray();
+  }
+
+  set approvedTokens(value: Array<string>) {
+    this.set("approvedTokens", Value.fromStringArray(value));
+  }
+
   get tokens(): Array<string> {
     let value = this.get("tokens");
     return value.toStringArray();
@@ -336,6 +345,26 @@ export class Moloch extends Entity {
       this.unset("proposedToFund");
     } else {
       this.set("proposedToFund", Value.fromStringArray(value as Array<string>));
+    }
+  }
+
+  get proposedToTrade(): Array<string> | null {
+    let value = this.get("proposedToTrade");
+    if (value === null) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set proposedToTrade(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("proposedToTrade");
+    } else {
+      this.set(
+        "proposedToTrade",
+        Value.fromStringArray(value as Array<string>)
+      );
     }
   }
 }
@@ -652,13 +681,21 @@ export class Member extends Entity {
     this.set("exists", Value.fromBoolean(value));
   }
 
-  get highestIndexYesVote(): BigInt {
+  get highestIndexYesVote(): string | null {
     let value = this.get("highestIndexYesVote");
-    return value.toBigInt();
+    if (value === null) {
+      return null;
+    } else {
+      return value.toString();
+    }
   }
 
-  set highestIndexYesVote(value: BigInt) {
-    this.set("highestIndexYesVote", Value.fromBigInt(value));
+  set highestIndexYesVote(value: string | null) {
+    if (value === null) {
+      this.unset("highestIndexYesVote");
+    } else {
+      this.set("highestIndexYesVote", Value.fromString(value as string));
+    }
   }
 
   get tokenTribute(): BigInt {
@@ -1094,6 +1131,15 @@ export class Proposal extends Entity {
 
   set newMember(value: boolean) {
     this.set("newMember", Value.fromBoolean(value));
+  }
+
+  get trade(): boolean {
+    let value = this.get("trade");
+    return value.toBoolean();
+  }
+
+  set trade(value: boolean) {
+    this.set("trade", Value.fromBoolean(value));
   }
 
   get details(): string {

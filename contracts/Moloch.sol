@@ -1,128 +1,11 @@
-
-// File: contracts/oz/SafeMath.sol
-
-pragma solidity ^0.5.2;
-
-library SafeMath {
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b);
-
-        return c;
-    }
-
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-
-        require(b > 0);
-        uint256 c = a / b;
-
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a);
-
-        return c;
-    }
-}
-
-// File: contracts/oz/IERC20.sol
-
-pragma solidity ^0.5.2;
-
-interface IERC20 {
-    function transfer(address to, uint256 value) external returns (bool);
-
-    function approve(address spender, uint256 value) external returns (bool);
-
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
-
-    function totalSupply() external view returns (uint256);
-
-    function balanceOf(address who) external view returns (uint256);
-
-    function allowance(address owner, address spender) external view returns (uint256);
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-// File: contracts/oz/ReentrancyGuard.sol
-
-pragma solidity ^0.5.0;
-
-/**
- * @dev Contract module that helps prevent reentrant calls to a function.
- *
- * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
- * available, which can be applied to functions to make sure there are no nested
- * (reentrant) calls to them.
- *
- * Note that because there is a single `nonReentrant` guard, functions marked as
- * `nonReentrant` may not call one another. This can be worked around by making
- * those functions `private`, and then adding `external` `nonReentrant` entry
- * points to them.
- *
- * _Since v2.5.0:_ this module is now much more gas efficient, given net gas
- * metering changes introduced in the Istanbul hardfork.
- */
-contract ReentrancyGuard {
-    bool private _notEntered;
-
-    constructor () internal {
-        // Storing an initial non-zero value makes deployment a bit more
-        // expensive, but in exchange the refund on every call to nonReentrant
-        // will be lower in amount. Since refunds are capped to a percetange of
-        // the total transaction's gas, it is best to keep them low in cases
-        // like this one, to increase the likelihood of the full refund coming
-        // into effect.
-        _notEntered = true;
-    }
-
-    /**
-     * @dev Prevents a contract from calling itself, directly or indirectly.
-     * Calling a `nonReentrant` function from another `nonReentrant`
-     * function is not supported. It is possible to prevent this from happening
-     * by making the `nonReentrant` function external, and make it call a
-     * `private` function that does the actual work.
-     */
-    modifier nonReentrant() {
-        // On the first call to nonReentrant, _notEntered will be true
-        require(_notEntered, "ReentrancyGuard: reentrant call");
-
-        // Any calls to nonReentrant after this point will fail
-        _notEntered = false;
-
-        _;
-
-        // By storing the original value once again, a refund is triggered (see
-        // https://eips.ethereum.org/EIPS/eip-2200)
-        _notEntered = true;
-    }
-}
-
-// File: contracts/Moloch.sol
-
 // TODO
 // [ ] Limit whitelisted token count, so a ragequit won't run out of gas.
 
 pragma solidity 0.5.3;
 
-
-
+import "./oz/SafeMath.sol";
+import "./oz/IERC20.sol";
+import "./oz/ReentrancyGuard.sol";
 
 contract Moloch is ReentrancyGuard {
     using SafeMath for uint256;
@@ -130,8 +13,6 @@ contract Moloch is ReentrancyGuard {
     /***************
     GLOBAL CONSTANTS
     ***************/
-    address public summoner; // initial singular shareholder, assists with bailouts
-
     uint256 public periodDuration; // default = 17280 = 4.8 hours in seconds (5 periods per day)
     uint256 public votingPeriodLength; // default = 35 periods (7 days)
     uint256 public gracePeriodLength; // default = 35 periods (7 days)
@@ -153,7 +34,7 @@ contract Moloch is ReentrancyGuard {
     // ***************
     // EVENTS
     // ***************
-    event SubmitProposal(uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress, address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, bool[6] flags);
+    event SubmitProposal(uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress, address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, bool[6] flags, string details);
     event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalIndex, uint256 proposalQueueIndex, uint256 startingPeriod);
     event SubmitVote(uint256 indexed proposalIndex, address indexed delegateKey, address indexed memberAddress, uint8 uintVote);
     event ProcessProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
@@ -162,7 +43,7 @@ contract Moloch is ReentrancyGuard {
     event Ragequit(address indexed memberAddress, uint256 sharesToBurn, uint256 lootToBurn);
     event CancelProposal(uint256 indexed proposalIndex, address applicantAddress);
     event UpdateDelegateKey(address indexed memberAddress, address newDelegateKey);
-    event SummonComplete(address indexed summoner, uint256 summoningTime, uint256 periodDuration, uint256 votingPeriodLength, uint256 gracePeriodLength, uint256 proposalDeposit, uint256 dilutionBound, uint256 processingReward, address depositToken, address[] tokens);
+    event SummonComplete(address indexed summoner, address[] tokens, uint256 summoningTime, uint256 periodDuration, uint256 votingPeriodLength, uint256 gracePeriodLength, uint256 proposalDeposit, uint256 dilutionBound, uint256 processingReward);
 
     // *******************
     // INTERNAL ACCOUNTING
@@ -256,10 +137,11 @@ contract Moloch is ReentrancyGuard {
         require(_dilutionBound <= MAX_DILUTION_BOUND, "_dilutionBound exceeds limit");
         require(_approvedTokens.length > 0, "need at least one approved token");
         require(_proposalDeposit >= _processingReward, "_proposalDeposit cannot be smaller than _processingReward");
-
-        summoner = _summoner;
-
+        
         depositToken = _approvedTokens[0];
+        //NOTE: move event up here, avoid stack too deep if too many approved tokens
+        emit SummonComplete(_summoner, _approvedTokens, now, _periodDuration, _votingPeriodLength, _gracePeriodLength, _proposalDeposit, _dilutionBound, _processingReward);
+
 
         for (uint256 i = 0; i < _approvedTokens.length; i++) {
             require(_approvedTokens[i] != address(0), "_approvedToken cannot be 0");
@@ -277,11 +159,10 @@ contract Moloch is ReentrancyGuard {
 
         summoningTime = now;
 
-        members[summoner] = Member(summoner, 1, 0, true, 0, 0);
-        memberAddressByDelegateKey[summoner] = summoner;
+        members[_summoner] = Member(_summoner, 1, 0, true, 0, 0);
+        memberAddressByDelegateKey[_summoner] = _summoner;
         totalShares = 1;
-
-        emit SummonComplete(summoner, summoningTime, periodDuration, votingPeriodLength, gracePeriodLength, proposalDeposit, dilutionBound, processingReward, depositToken, approvedTokens);
+       
     }
 
     /*****************
@@ -328,7 +209,6 @@ contract Moloch is ReentrancyGuard {
         Member memory member = members[memberToKick];
 
         require(member.shares > 0 || member.loot > 0, "member must have at least one share or one loot");
-        require(memberToKick != summoner, "the summoner may not be kicked");
         require(members[memberToKick].jailed == 0, "member must not already be jailed");
 
         bool[6] memory flags; // [sponsored, processed, didPass, cancelled, whitelist, guildkick]
@@ -369,7 +249,7 @@ contract Moloch is ReentrancyGuard {
 
         proposals[proposalCount] = proposal;
         address memberAddress = memberAddressByDelegateKey[msg.sender];
-        emit SubmitProposal(proposalCount, msg.sender, memberAddress, applicant, sharesRequested, lootRequested, tributeOffered, tributeToken, paymentRequested, paymentToken, flags);
+        emit SubmitProposal(proposalCount, msg.sender, memberAddress, applicant, sharesRequested, lootRequested, tributeOffered, tributeToken, paymentRequested, paymentToken, flags, details);
         proposalCount += 1;
     }
 

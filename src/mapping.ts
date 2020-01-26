@@ -2,14 +2,92 @@ import { SummonComplete, SubmitProposal, SubmitVote, ProcessProposal, UpdateDele
 import { BigInt, log, Address } from "@graphprotocol/graph-ts";
 import { Moloch, Member, Token, TokenBalance, Proposal, Vote } from '../generated/schema'
 
-const ESCROW = Address.fromHexString("0xDEAD");
-const GUILD = Address.fromHexString("0xBEEF");
+interface DaoSpell {
+  summoner: Address;
+  summoningTime: BigInt;
+  periodDuration: BigInt;
+  votingPeriodLength: BigInt;
+  gracePeriodLength: BigInt;
+  proposalDeposit: BigInt;
+  dilutionBound: BigInt;
+  processingReward: BigInt;
+  approvedTokens: string[];
+  guildTokenBalance: string[];
+  escrowTokenBalance: string[];
+  currentPeriod: number;
+  totalShares: number;
+  totalLoot: number;
+  proposalCount: number;
+  proposalQueueCount: number;
+  proposedToJoin: string[];
+  proposedToWhitelist: string[];
+  proposedToKick: string[];
+  proposedToFund: string[];
+}
+
+interface GuildTokenBalanceSpell {
+  moloch: string;
+  token: string;
+  tokenBalance: BigInt;
+  guildBank: true;
+  ecrowBank: false;
+  memberBank: false;
+}
+interface MemberTokenBalanceSpell{
+  moloch: string;
+  token: string;
+  tokenBalance: BigInt;
+  guildBank: false;
+  ecrowBank: false;
+  memberBank: true;
+}
+
+interface EscrowTokenBalanceSpell {
+  moloch: string;
+  token: string;
+  tokenBalance: BigInt;
+  guildBank: false;
+  ecrowBank: true;
+  memberBank: false;
+}
+
+interface UserSpell{
+  moloch: string;
+  memberAddress: Address;
+  delegateKey: Address;
+  shares: number;
+  loot: number;
+  exists: boolean;
+  highestIndexYesVote: number;
+  tokenTribute: number;
+  didRagequit: boolean;
+  proposedToKick: boolean;
+}
+
+
+const ESCROW:Address = Address.fromHexString("0xDEAD");
+const GUILD:Address = Address.fromHexString("0xBEEF");
+
+function loadOrCreateTokenBalance(molochId:string, member:Address, token:Address):TokenBalance {
+  const tokenId = molochId.concat("-token-").concat(token.toHex());
+  const memberTokenBalanceId = tokenId.concat("-member-").concat(member.toHex());
+  let tokenBalance =  TokenBalance.load(memberTokenBalanceId);
+  const tokenBalanceDNE = tokenBalance?true:false;
+  if(tokenBalanceDNE){
+    createMemberTokenBalance(molochId,member,token,BigInt.fromI32(0))
+    return TokenBalance.load(memberTokenBalanceId);
+  }else {
+    return tokenBalance
+  }
+
+}
 
 function addToBalance(molochId:string, member:Address, token:Address, amount:BigInt) {
-  let tokenId = molochId.concat("-token-").concat(token.toHex());
-  let tokenBalanceId = tokenId.concat("-member-").concat(member.toHex());
-  let tokenBalance =  TokenBalance.load(tokenBalanceId);
+  const tokenId = molochId.concat("-token-").concat(token.toHex());
+  const tokenBalanceId = tokenId.concat("-member-").concat(member.toHex());
+  let tokenBalance = loadOrCreateTokenBalance(molochId,member,token);
   const addToBalanceSpell = {
+    //TODO:rename to avoid stutter
     tokenBalance: tokenBalance.tokenBalance.plus(amount)
   }
   tokenBalance = Object.assign({}, tokenBalance, addToBalanceSpell);
@@ -20,6 +98,7 @@ function subtractFromBalance(molochId:string, member:Address, token:Address, amo
   let tokenId = molochId.concat("-token-").concat(token.toHex());
   let tokenBalanceId = tokenId.concat("-member-").concat(member.toHex());
   let tokenBalance =  TokenBalance.load(tokenBalanceId);
+  //TODO: create token balance if null
   const subtractFromBalanceSpell = {
     tokenBalance: tokenBalance.tokenBalance.minus(amount)
   }
@@ -28,30 +107,47 @@ function subtractFromBalance(molochId:string, member:Address, token:Address, amo
   return tokenBalanceId;
 }
 function internalTransfer(molochId:string, from:Address, to:Address, token:Address, amount:BigInt) {
+  const tokenId = molochId.concat("-token-").concat(token.toHex());
   subtractFromBalance(molochId, from, token, amount);
   addToBalance(molochId, to, token, amount);
 }
-function createEscrowTokenBalance(token:Address, molochId:string, amount:BigInt):string {
-  let tokenId = molochId.concat("-token-").concat(token.toHex());
-  let escrowTokenBalanceId = tokenId.concat("-member-").concat("0xDEAD");
+function createMemberTokenBalance( molochId:string, member:Address, token:Address, amount:BigInt ):string {
+  const tokenId = molochId.concat("-token-").concat(token.toHex());
+  const memberTokenBalanceId = tokenId.concat("-member-").concat(member.toHex());
+  let memberTokenBalance = new TokenBalance(memberTokenBalanceId);
+  const memberTokenBalanceSpell:MemberTokenBalanceSpell = {
+    moloch: molochId,
+    token: tokenId,
+    tokenBalance: amount,
+    guildBank: false,
+    ecrowBank: false,
+    memberBank: true,
+  }
+  memberTokenBalance = Object.assign({}, memberTokenBalance, memberTokenBalanceSpell);
+  memberTokenBalance.save();
+  return memberTokenBalanceId;
+}
+function createEscrowTokenBalance(molochId:string, token:Address):string {
+  const tokenId = molochId.concat("-token-").concat(token.toHex());
+  const escrowTokenBalanceId = tokenId.concat("-member-").concat(ESCROW.toHex());
   let escrowTokenBalance = new TokenBalance(escrowTokenBalanceId);
-  const escrowTokenBalanceSpell = {
+  const escrowTokenBalanceSpell:EscrowTokenBalanceSpell = {
     moloch: molochId,
     token: tokenId,
     tokenBalance: BigInt.fromI32(0),
     guildBank: false,
     ecrowBank: true,
-    memberBank: false
+    memberBank: false,
   }
   escrowTokenBalance = Object.assign({}, escrowTokenBalance, escrowTokenBalanceSpell);
   escrowTokenBalance.save();
   return escrowTokenBalanceId;
 }
-function createGuildTokenBalance(token:Address, molochId:string, amount:BigInt):string {
-  let tokenId = molochId.concat("-token-").concat(token.toHex());
-  let guildTokenBalanceId = tokenId.concat("-member-").concat("0xBEEF");
+function createGuildTokenBalance(molochId:string, token:Address):string {
+  const tokenId = molochId.concat("-token-").concat(token.toHex());
+  const guildTokenBalanceId = tokenId.concat("-member-").concat(GUILD.toHex());
   let guildTokenBalance = new TokenBalance(guildTokenBalanceId);
-  const guildTokenBalanceSpell = {
+  const guildTokenBalanceSpell:GuildTokenBalanceSpell = {
     moloch: molochId,
     token: tokenId,
     tokenBalance: BigInt.fromI32(0),
@@ -63,30 +159,32 @@ function createGuildTokenBalance(token:Address, molochId:string, amount:BigInt):
   guildTokenBalance.save();
   return guildTokenBalanceId;
 }
-function createAndApproveToken(token:Address, molochId:string):string {
+function createAndApproveToken( molochId:string, token:Address):string {
   let tokenId = molochId.concat("-token-").concat(token.toHex());
-  let approvedToken = new Token(tokenId);
+  let createToken = new Token(tokenId);
   const tokenSpell = {
     moloch:molochId,
     tokenAddress:token,
     whitelisted:true  
   }
-  approvedToken = Object.assign({}, approvedToken, tokenSpell);
-  approvedToken.save();
+  createToken = Object.assign({}, createToken, tokenSpell);
+  createToken.save();
   return tokenId;
 }
 
-// DONE - event: SummonComplete(indexed address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address,address[])
+// DONE - event SummonComplete(address indexed summoner, address[] tokens, uint256 summoningTime, uint256 periodDuration, uint256 votingPeriodLength, uint256 gracePeriodLength, uint256 proposalDeposit, uint256 dilutionBound, uint256 processingReward);
+
 // handler: handleSummonComplete
 export function handleSummonComplete(event: SummonComplete): void {
   const molochId = event.address.toHex();
   let moloch = new Moloch(molochId);
-  const {summoner,summoningTime,periodDuration,votingPeriodLength,gracePeriodLength, proposalDeposit,dilutionBound,processingReward,depositToken,tokens} = event.params;
-  let approvedTokens = tokens.map((token)=>{ return createAndApproveToken(token, molochId)})
-  let escrowTokenBalance = tokens.map((token)=>{ return createEscrowTokenBalance(token, molochId, BigInt.fromI32(0))})
-  let guildTokenBalance = tokens.map((token)=>{ return createGuildTokenBalance(token, molochId, BigInt.fromI32(0))})
+  const {summoner,summoningTime,tokens, periodDuration,votingPeriodLength,gracePeriodLength, proposalDeposit,dilutionBound,processingReward} = event.params;
+  let approvedTokens = tokens.map((token)=>{ return createAndApproveToken( molochId, token )})
+  let escrowTokenBalance = tokens.map((token)=>{ return createEscrowTokenBalance(molochId, token)})
+  let guildTokenBalance = tokens.map((token)=>{ return createGuildTokenBalance(molochId, token)})
 
-  const daoSpell = {
+  // Start new Moloch instance
+  const daoSpell:DaoSpell = {
     summoner,
     summoningTime,
     periodDuration,
@@ -95,7 +193,7 @@ export function handleSummonComplete(event: SummonComplete): void {
     proposalDeposit,
     dilutionBound,
     processingReward,
-    depositToken,
+    approvedTokens,
     guildTokenBalance: guildTokenBalance,
     escrowTokenBalance: escrowTokenBalance,
     currentPeriod: 0,
@@ -111,9 +209,10 @@ export function handleSummonComplete(event: SummonComplete): void {
   moloch = Object.assign({}, moloch, daoSpell);
   moloch.save();
 
+  //Create member foir summoner
   const memberId = molochId.concat("-member-").concat(summoner.toHex());
-  let member = new Member(memberId);
-  const userSpell = {
+  let newMember = new Member(memberId);
+  const userSpell:UserSpell = {
     moloch: molochId,
     memberAddress: summoner,
     delegateKey: summoner,
@@ -125,11 +224,14 @@ export function handleSummonComplete(event: SummonComplete): void {
     didRagequit: false,
     proposedToKick:false
   };
-  member = Object.assign({}, member, userSpell);
-  member.save();
+  newMember = Object.assign({}, newMember, userSpell);
+  newMember.save();
+  //Set summoner summoner balances for approved tokens to zero 
+  let newMemberTokenBalances = tokens.map((token)=>{ return createMemberTokenBalance(molochId, summoner, token, BigInt.fromI32(0))})
+
 }
 
-// TODO - event: SubmitProposal(uint256,indexed address,indexed address,indexed address,uint256,uint256,uint256,address,uint256,address)
+// TODO - event: event SubmitProposal(uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress, address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, bool[6] flags, string details);
 // handler: handleSubmitProposal
 export function handleSubmitProposal(event: SubmitProposal):void {
   const molochId = event.address.toHex();
@@ -137,6 +239,8 @@ export function handleSubmitProposal(event: SubmitProposal):void {
   const proposalId = molochId.concat("-proposal-").concat(proposalIndex.toString());
   const memberId = molochId.concat("-member-").concat(memberAddress.toHex());
   const newMember = Member.load(molochId.concat("-member-").concat(applicant.toHex()))?false:true;
+  // For trades, members deposit tribute in the token they want to sell to the dao, and request payment in the token they wish to receive.
+  const trade =  paymentToken && tributeToken && tributeOffered > BigInt.fromI32(0) && paymentRequested > BigInt.fromI32(0);
 
   let proposal = new Proposal(proposalId);
   const proposalSpell = {
@@ -166,6 +270,7 @@ export function handleSubmitProposal(event: SubmitProposal):void {
     whitelist: flags[4],
     guildkick: flags[5],
     newMember,
+    trade,
     details,
     maxTotalSharesAndLootAtYesVote : 0,
 
@@ -176,12 +281,17 @@ export function handleSubmitProposal(event: SubmitProposal):void {
   proposal = Object.assign({}, proposal, proposalSpell);
   proposal.save();
 
+  // collect tribute from proposer and store it in Moloch ESCROW until the proposal is processed
+  if(tributeOffered > BigInt.fromI32(0)){
+    addToBalance(molochId, ESCROW, tributeToken, tributeOffered);
+  }
+  
 }
 
 // TODO - event: SubmitVote(indexed uint256,indexed address,indexed address,uint8)
 // handler: handleSubmitVote
 export function handleSubmitVote(event: SubmitVote):void{
-  const { proposalIndex, delegateKey, memberAddress, uintVote} = event.params;
+  const { proposalIndex, proposalQueueIndex, delegateKey, memberAddress, uintVote} = event.params;
   const molochId = event.address.toHex();
   const memberId = molochId.concat("-member-").concat(memberAddress.toHex());
   const proposalId = molochId.concat("-proposal-").concat(proposalIndex.toString());
@@ -196,18 +306,19 @@ export function handleSubmitVote(event: SubmitVote):void{
     uintVote
   }
 
-  
   let moloch = Moloch.load(molochId);
   let proposal = Proposal.load(proposalId);
   let member = Member.load(memberId);
+
   switch(Number(uintVote)){
     case(1): {
       //NOTE: Vote.yes
       proposal.yesShares = proposal.yesShares.plus(member.shares);
       proposal.yesVotes = proposal.yesVotes.plus(BigInt.fromI32(1));
+      //NOTE: Set maximum of total shares encountered at a yes vote - used to bound dilution for yes voters
       proposal.maxTotalSharesAndLootAtYesVote = moloch.totalLoot.plus(moloch.totalShares);
-
-      member.highestIndexYesVote = proposalIndex;
+      //NOTE: Set highest index (latest) yes vote - must be processed for member to ragequit
+      member.highestIndexYesVote = proposalId;
       proposal.save();
       member.save();
       break; 
@@ -225,9 +336,9 @@ export function handleSubmitVote(event: SubmitVote):void{
   }
 }
 
-// TODO - event: SponsorProposal(indexed address,indexed address,uint256,uint256,uint256)
+// TODO - event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalIndex, uint256 proposalQueueIndex, uint256 startingPeriod);
 // handler: handleSponsorProposal
-export function SponsorProposal(event:SponsorProposal):void{
+export function handleSponsorProposal(event:SponsorProposal):void{
   const {delegateKey, memberAddress, proposalIndex, proposalQueueIndex, startingPeriod} = event.params;
   const molochId = event.address.toHex();
   const memberId = molochId.concat("-member-").concat(memberAddress.toHex());
@@ -235,10 +346,12 @@ export function SponsorProposal(event:SponsorProposal):void{
 
   const moloch = Moloch.load(molochId);
   const {depositToken, proposalDeposit} = moloch;
+
+  // collect proposal deposit from sponsor and store it in the Moloch until the proposal is processed
   addToBalance(molochId, ESCROW, depositToken, proposalDeposit);
 
   let proposal = Proposal.load(proposalId);
-  const {whitelist, guildkick, newMember} = proposal;
+  const {whitelist, guildkick, newMember, trade} = proposal;
 
   if (newMember){
     const memberProposals:string[] = [].concat(moloch.proposedToJoin, proposalId);
@@ -255,6 +368,11 @@ export function SponsorProposal(event:SponsorProposal):void{
     moloch.proposedToKick = guildkickProposals;
     moloch.save()
   } 
+  else if (trade){
+    const tradeProposals:string[] = [].concat(moloch.proposedToTrade, proposalId);
+    moloch.proposedToTrade = tradeProposals;
+    moloch.save()
+  }
   else {
     const projectProposals:string[] = [].concat(moloch.proposedToFund, proposalId);
     moloch.proposedToFund = projectProposals;
@@ -273,7 +391,7 @@ export function SponsorProposal(event:SponsorProposal):void{
 
 }
 
-// - event: ProcessProposal(indexed uint256,indexed uint256,bool)
+// TODO - event ProcessProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
 // handler: handleProcessProposal
 export function handleProcessProposal(event: ProcessProposal):void{
   const {proposalIndex, proposalId, didPass} = event.params;
@@ -323,6 +441,7 @@ export function handleProcessProposal(event: ProcessProposal):void{
     moloch.totalShares = totalShares.plus(sharesRequested);
     moloch.totalLoot = totalLoot.plus(lootRequested);
     internalTransfer(molochId,ESCROW, GUILD,tributeToken, tributeOffered)
+    //TODO: check if user has a tokenBalance for that token if not then create one before sending
     internalTransfer(molochId,GUILD, applicant,paymentToken, paymentRequested)
 
   //NOTE: PROPOSAL FAILED
@@ -340,6 +459,14 @@ export function handleProcessProposal(event: ProcessProposal):void{
   proposal.save();
 
 }
+
+
+// event ProcessWhitelistProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
+// event ProcessGuildKickProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
+// event Ragequit(address indexed memberAddress, uint256 sharesToBurn, uint256 lootToBurn);
+// event CancelProposal(uint256 indexed proposalIndex, address applicantAddress);
+// event UpdateDelegateKey(address indexed memberAddress, address newDelegateKey);
+
 
 // - event: ProcessGuildKickProposal(indexed uint256,indexed uint256,bool)
 // handler: handleProcessGuildKickProposal

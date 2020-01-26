@@ -25,16 +25,15 @@ dataSources:
       abis:
         - name: Moloch
           file: ./abis/Moloch.json
-      eventHandlers:
-        - event: SummonComplete(indexed address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address,address[])
+      eventHandlers:         
+        - event: SummonComplete(indexed address,address[],uint256,uint256,uint256,uint256,uint256,uint256,uint256)
           handler: handleSummonComplete
-        - event: SubmitProposal(uint256,indexed address,indexed address,indexed address,uint256,uint256,uint256,address,uint256,address,bool[6])
+        - event: SubmitProposal(indexed address,uint256,uint256,uint256,address,uint256,address,string,bool[6],uint256,indexed address,indexed address)
           handler: handleSubmitProposal
-        - event: SubmitVote(indexed uint256,indexed address,indexed address,uint8)
+        - event: SubmitVote(uint256,indexed uint256,indexed address,indexed address,uint8)
           handler: handleSubmitVote
         - event: SponsorProposal(indexed address,indexed address,uint256,uint256,uint256)
           handler: handleSponsorProposal
-       
         - event: ProcessProposal(indexed uint256,indexed uint256,bool)
           handler: handleProcessProposal
         - event: ProcessGuildKickProposal(indexed uint256,indexed uint256,bool)

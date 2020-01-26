@@ -28,48 +28,52 @@ export class SubmitProposal__Params {
     this._event = event;
   }
 
-  get proposalIndex(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get delegateKey(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get memberAddress(): Address {
-    return this._event.parameters[2].value.toAddress();
-  }
-
   get applicant(): Address {
-    return this._event.parameters[3].value.toAddress();
+    return this._event.parameters[0].value.toAddress();
   }
 
   get sharesRequested(): BigInt {
-    return this._event.parameters[4].value.toBigInt();
+    return this._event.parameters[1].value.toBigInt();
   }
 
   get lootRequested(): BigInt {
-    return this._event.parameters[5].value.toBigInt();
+    return this._event.parameters[2].value.toBigInt();
   }
 
   get tributeOffered(): BigInt {
-    return this._event.parameters[6].value.toBigInt();
+    return this._event.parameters[3].value.toBigInt();
   }
 
   get tributeToken(): Address {
-    return this._event.parameters[7].value.toAddress();
+    return this._event.parameters[4].value.toAddress();
   }
 
   get paymentRequested(): BigInt {
-    return this._event.parameters[8].value.toBigInt();
+    return this._event.parameters[5].value.toBigInt();
   }
 
   get paymentToken(): Address {
-    return this._event.parameters[9].value.toAddress();
+    return this._event.parameters[6].value.toAddress();
+  }
+
+  get details(): string {
+    return this._event.parameters[7].value.toString();
   }
 
   get flags(): Array<boolean> {
-    return this._event.parameters[10].value.toBooleanArray();
+    return this._event.parameters[8].value.toBooleanArray();
+  }
+
+  get proposalIndex(): BigInt {
+    return this._event.parameters[9].value.toBigInt();
+  }
+
+  get delegateKey(): Address {
+    return this._event.parameters[10].value.toAddress();
+  }
+
+  get memberAddress(): Address {
+    return this._event.parameters[11].value.toAddress();
   }
 }
 
@@ -124,16 +128,20 @@ export class SubmitVote__Params {
     return this._event.parameters[0].value.toBigInt();
   }
 
-  get delegateKey(): Address {
-    return this._event.parameters[1].value.toAddress();
+  get proposalQueueIndex(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
   }
 
-  get memberAddress(): Address {
+  get delegateKey(): Address {
     return this._event.parameters[2].value.toAddress();
   }
 
+  get memberAddress(): Address {
+    return this._event.parameters[3].value.toAddress();
+  }
+
   get uintVote(): i32 {
-    return this._event.parameters[3].value.toI32();
+    return this._event.parameters[4].value.toI32();
   }
 }
 
@@ -302,40 +310,36 @@ export class SummonComplete__Params {
     return this._event.parameters[0].value.toAddress();
   }
 
-  get summoningTime(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
+  get tokens(): Array<Address> {
+    return this._event.parameters[1].value.toAddressArray();
   }
 
-  get periodDuration(): BigInt {
+  get summoningTime(): BigInt {
     return this._event.parameters[2].value.toBigInt();
   }
 
-  get votingPeriodLength(): BigInt {
+  get periodDuration(): BigInt {
     return this._event.parameters[3].value.toBigInt();
   }
 
-  get gracePeriodLength(): BigInt {
+  get votingPeriodLength(): BigInt {
     return this._event.parameters[4].value.toBigInt();
   }
 
-  get proposalDeposit(): BigInt {
+  get gracePeriodLength(): BigInt {
     return this._event.parameters[5].value.toBigInt();
   }
 
-  get dilutionBound(): BigInt {
+  get proposalDeposit(): BigInt {
     return this._event.parameters[6].value.toBigInt();
   }
 
-  get processingReward(): BigInt {
+  get dilutionBound(): BigInt {
     return this._event.parameters[7].value.toBigInt();
   }
 
-  get depositToken(): Address {
-    return this._event.parameters[8].value.toAddress();
-  }
-
-  get tokens(): Array<Address> {
-    return this._event.parameters[9].value.toAddressArray();
+  get processingReward(): BigInt {
+    return this._event.parameters[8].value.toBigInt();
   }
 }
 
@@ -514,6 +518,45 @@ export class Moloch extends SmartContract {
     return CallResult.fromValue(value[0].toBigInt());
   }
 
+  getMemberProposalVote(memberAddress: Address, proposalIndex: BigInt): i32 {
+    let result = super.call("getMemberProposalVote", [
+      EthereumValue.fromAddress(memberAddress),
+      EthereumValue.fromUnsignedBigInt(proposalIndex)
+    ]);
+
+    return result[0].toI32();
+  }
+
+  try_getMemberProposalVote(
+    memberAddress: Address,
+    proposalIndex: BigInt
+  ): CallResult<i32> {
+    let result = super.tryCall("getMemberProposalVote", [
+      EthereumValue.fromAddress(memberAddress),
+      EthereumValue.fromUnsignedBigInt(proposalIndex)
+    ]);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toI32());
+  }
+
+  getCurrentPeriod(): BigInt {
+    let result = super.call("getCurrentPeriod", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_getCurrentPeriod(): CallResult<BigInt> {
+    let result = super.tryCall("getCurrentPeriod", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
   members(param0: Address): Moloch__membersResult {
     let result = super.call("members", [EthereumValue.fromAddress(param0)]);
 
@@ -543,6 +586,30 @@ export class Moloch extends SmartContract {
         value[5].toBigInt()
       )
     );
+  }
+
+  submitGuildKickProposal(memberToKick: Address, details: string): BigInt {
+    let result = super.call("submitGuildKickProposal", [
+      EthereumValue.fromAddress(memberToKick),
+      EthereumValue.fromString(details)
+    ]);
+
+    return result[0].toBigInt();
+  }
+
+  try_submitGuildKickProposal(
+    memberToKick: Address,
+    details: string
+  ): CallResult<BigInt> {
+    let result = super.tryCall("submitGuildKickProposal", [
+      EthereumValue.fromAddress(memberToKick),
+      EthereumValue.fromString(details)
+    ]);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
   }
 
   approvedTokens(param0: BigInt): Address {
@@ -657,224 +724,6 @@ export class Moloch extends SmartContract {
     return CallResult.fromValue(value[0].toBigInt());
   }
 
-  totalLoot(): BigInt {
-    let result = super.call("totalLoot", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_totalLoot(): CallResult<BigInt> {
-    let result = super.tryCall("totalLoot", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  gracePeriodLength(): BigInt {
-    let result = super.call("gracePeriodLength", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_gracePeriodLength(): CallResult<BigInt> {
-    let result = super.tryCall("gracePeriodLength", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  tokenWhitelist(param0: Address): boolean {
-    let result = super.call("tokenWhitelist", [
-      EthereumValue.fromAddress(param0)
-    ]);
-
-    return result[0].toBoolean();
-  }
-
-  try_tokenWhitelist(param0: Address): CallResult<boolean> {
-    let result = super.tryCall("tokenWhitelist", [
-      EthereumValue.fromAddress(param0)
-    ]);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBoolean());
-  }
-
-  summoningTime(): BigInt {
-    let result = super.call("summoningTime", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_summoningTime(): CallResult<BigInt> {
-    let result = super.tryCall("summoningTime", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  votingPeriodLength(): BigInt {
-    let result = super.call("votingPeriodLength", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_votingPeriodLength(): CallResult<BigInt> {
-    let result = super.tryCall("votingPeriodLength", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  proposalDeposit(): BigInt {
-    let result = super.call("proposalDeposit", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_proposalDeposit(): CallResult<BigInt> {
-    let result = super.tryCall("proposalDeposit", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  dilutionBound(): BigInt {
-    let result = super.call("dilutionBound", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_dilutionBound(): CallResult<BigInt> {
-    let result = super.tryCall("dilutionBound", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  periodDuration(): BigInt {
-    let result = super.call("periodDuration", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_periodDuration(): CallResult<BigInt> {
-    let result = super.tryCall("periodDuration", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  depositToken(): Address {
-    let result = super.call("depositToken", []);
-
-    return result[0].toAddress();
-  }
-
-  try_depositToken(): CallResult<Address> {
-    let result = super.tryCall("depositToken", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toAddress());
-  }
-
-  proposalCount(): BigInt {
-    let result = super.call("proposalCount", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_proposalCount(): CallResult<BigInt> {
-    let result = super.tryCall("proposalCount", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  summoner(): Address {
-    let result = super.call("summoner", []);
-
-    return result[0].toAddress();
-  }
-
-  try_summoner(): CallResult<Address> {
-    let result = super.tryCall("summoner", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toAddress());
-  }
-
-  proposedToWhitelist(param0: Address): boolean {
-    let result = super.call("proposedToWhitelist", [
-      EthereumValue.fromAddress(param0)
-    ]);
-
-    return result[0].toBoolean();
-  }
-
-  try_proposedToWhitelist(param0: Address): CallResult<boolean> {
-    let result = super.tryCall("proposedToWhitelist", [
-      EthereumValue.fromAddress(param0)
-    ]);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBoolean());
-  }
-
-  ESCROW(): Address {
-    let result = super.call("ESCROW", []);
-
-    return result[0].toAddress();
-  }
-
-  try_ESCROW(): CallResult<Address> {
-    let result = super.tryCall("ESCROW", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toAddress());
-  }
-
-  GUILD(): Address {
-    let result = super.call("GUILD", []);
-
-    return result[0].toAddress();
-  }
-
-  try_GUILD(): CallResult<Address> {
-    let result = super.tryCall("GUILD", []);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toAddress());
-  }
-
   submitProposal(
     applicant: Address,
     sharesRequested: BigInt,
@@ -926,22 +775,49 @@ export class Moloch extends SmartContract {
     return CallResult.fromValue(value[0].toBigInt());
   }
 
-  submitWhitelistProposal(tokenToWhitelist: Address, details: string): BigInt {
-    let result = super.call("submitWhitelistProposal", [
-      EthereumValue.fromAddress(tokenToWhitelist),
-      EthereumValue.fromString(details)
+  totalLoot(): BigInt {
+    let result = super.call("totalLoot", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_totalLoot(): CallResult<BigInt> {
+    let result = super.tryCall("totalLoot", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
+  gracePeriodLength(): BigInt {
+    let result = super.call("gracePeriodLength", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_gracePeriodLength(): CallResult<BigInt> {
+    let result = super.tryCall("gracePeriodLength", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
+  getUserTokenBalance(user: Address, token: Address): BigInt {
+    let result = super.call("getUserTokenBalance", [
+      EthereumValue.fromAddress(user),
+      EthereumValue.fromAddress(token)
     ]);
 
     return result[0].toBigInt();
   }
 
-  try_submitWhitelistProposal(
-    tokenToWhitelist: Address,
-    details: string
-  ): CallResult<BigInt> {
-    let result = super.tryCall("submitWhitelistProposal", [
-      EthereumValue.fromAddress(tokenToWhitelist),
-      EthereumValue.fromString(details)
+  try_getUserTokenBalance(user: Address, token: Address): CallResult<BigInt> {
+    let result = super.tryCall("getUserTokenBalance", [
+      EthereumValue.fromAddress(user),
+      EthereumValue.fromAddress(token)
     ]);
     if (result.reverted) {
       return new CallResult();
@@ -950,47 +826,83 @@ export class Moloch extends SmartContract {
     return CallResult.fromValue(value[0].toBigInt());
   }
 
-  submitGuildKickProposal(memberToKick: Address, details: string): BigInt {
-    let result = super.call("submitGuildKickProposal", [
-      EthereumValue.fromAddress(memberToKick),
-      EthereumValue.fromString(details)
-    ]);
-
-    return result[0].toBigInt();
-  }
-
-  try_submitGuildKickProposal(
-    memberToKick: Address,
-    details: string
-  ): CallResult<BigInt> {
-    let result = super.tryCall("submitGuildKickProposal", [
-      EthereumValue.fromAddress(memberToKick),
-      EthereumValue.fromString(details)
-    ]);
-    if (result.reverted) {
-      return new CallResult();
-    }
-    let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
-  }
-
-  canRagequit(highestIndexYesVote: BigInt): boolean {
-    let result = super.call("canRagequit", [
-      EthereumValue.fromUnsignedBigInt(highestIndexYesVote)
+  tokenWhitelist(param0: Address): boolean {
+    let result = super.call("tokenWhitelist", [
+      EthereumValue.fromAddress(param0)
     ]);
 
     return result[0].toBoolean();
   }
 
-  try_canRagequit(highestIndexYesVote: BigInt): CallResult<boolean> {
-    let result = super.tryCall("canRagequit", [
-      EthereumValue.fromUnsignedBigInt(highestIndexYesVote)
+  try_tokenWhitelist(param0: Address): CallResult<boolean> {
+    let result = super.tryCall("tokenWhitelist", [
+      EthereumValue.fromAddress(param0)
     ]);
     if (result.reverted) {
       return new CallResult();
     }
     let value = result.value;
     return CallResult.fromValue(value[0].toBoolean());
+  }
+
+  getProposalQueueLength(): BigInt {
+    let result = super.call("getProposalQueueLength", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_getProposalQueueLength(): CallResult<BigInt> {
+    let result = super.tryCall("getProposalQueueLength", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
+  summoningTime(): BigInt {
+    let result = super.call("summoningTime", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_summoningTime(): CallResult<BigInt> {
+    let result = super.tryCall("summoningTime", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
+  votingPeriodLength(): BigInt {
+    let result = super.call("votingPeriodLength", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_votingPeriodLength(): CallResult<BigInt> {
+    let result = super.tryCall("votingPeriodLength", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
+  proposalDeposit(): BigInt {
+    let result = super.call("proposalDeposit", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_proposalDeposit(): CallResult<BigInt> {
+    let result = super.tryCall("proposalDeposit", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
   }
 
   hasVotingPeriodExpired(startingPeriod: BigInt): boolean {
@@ -1012,29 +924,33 @@ export class Moloch extends SmartContract {
     return CallResult.fromValue(value[0].toBoolean());
   }
 
-  getCurrentPeriod(): BigInt {
-    let result = super.call("getCurrentPeriod", []);
+  canRagequit(highestIndexYesVote: BigInt): boolean {
+    let result = super.call("canRagequit", [
+      EthereumValue.fromUnsignedBigInt(highestIndexYesVote)
+    ]);
 
-    return result[0].toBigInt();
+    return result[0].toBoolean();
   }
 
-  try_getCurrentPeriod(): CallResult<BigInt> {
-    let result = super.tryCall("getCurrentPeriod", []);
+  try_canRagequit(highestIndexYesVote: BigInt): CallResult<boolean> {
+    let result = super.tryCall("canRagequit", [
+      EthereumValue.fromUnsignedBigInt(highestIndexYesVote)
+    ]);
     if (result.reverted) {
       return new CallResult();
     }
     let value = result.value;
-    return CallResult.fromValue(value[0].toBigInt());
+    return CallResult.fromValue(value[0].toBoolean());
   }
 
-  getProposalQueueLength(): BigInt {
-    let result = super.call("getProposalQueueLength", []);
+  dilutionBound(): BigInt {
+    let result = super.call("dilutionBound", []);
 
     return result[0].toBigInt();
   }
 
-  try_getProposalQueueLength(): CallResult<BigInt> {
-    let result = super.tryCall("getProposalQueueLength", []);
+  try_dilutionBound(): CallResult<BigInt> {
+    let result = super.tryCall("dilutionBound", []);
     if (result.reverted) {
       return new CallResult();
     }
@@ -1061,20 +977,14 @@ export class Moloch extends SmartContract {
     return CallResult.fromValue(value[0].toBooleanArray());
   }
 
-  getUserTokenBalance(user: Address, token: Address): BigInt {
-    let result = super.call("getUserTokenBalance", [
-      EthereumValue.fromAddress(user),
-      EthereumValue.fromAddress(token)
-    ]);
+  periodDuration(): BigInt {
+    let result = super.call("periodDuration", []);
 
     return result[0].toBigInt();
   }
 
-  try_getUserTokenBalance(user: Address, token: Address): CallResult<BigInt> {
-    let result = super.tryCall("getUserTokenBalance", [
-      EthereumValue.fromAddress(user),
-      EthereumValue.fromAddress(token)
-    ]);
+  try_periodDuration(): CallResult<BigInt> {
+    let result = super.tryCall("periodDuration", []);
     if (result.reverted) {
       return new CallResult();
     }
@@ -1082,85 +992,310 @@ export class Moloch extends SmartContract {
     return CallResult.fromValue(value[0].toBigInt());
   }
 
-  getMemberProposalVote(memberAddress: Address, proposalIndex: BigInt): i32 {
-    let result = super.call("getMemberProposalVote", [
-      EthereumValue.fromAddress(memberAddress),
-      EthereumValue.fromUnsignedBigInt(proposalIndex)
-    ]);
+  depositToken(): Address {
+    let result = super.call("depositToken", []);
 
-    return result[0].toI32();
+    return result[0].toAddress();
   }
 
-  try_getMemberProposalVote(
-    memberAddress: Address,
-    proposalIndex: BigInt
-  ): CallResult<i32> {
-    let result = super.tryCall("getMemberProposalVote", [
-      EthereumValue.fromAddress(memberAddress),
-      EthereumValue.fromUnsignedBigInt(proposalIndex)
+  try_depositToken(): CallResult<Address> {
+    let result = super.tryCall("depositToken", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toAddress());
+  }
+
+  proposalCount(): BigInt {
+    let result = super.call("proposalCount", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_proposalCount(): CallResult<BigInt> {
+    let result = super.tryCall("proposalCount", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
+  proposedToWhitelist(param0: Address): boolean {
+    let result = super.call("proposedToWhitelist", [
+      EthereumValue.fromAddress(param0)
+    ]);
+
+    return result[0].toBoolean();
+  }
+
+  try_proposedToWhitelist(param0: Address): CallResult<boolean> {
+    let result = super.tryCall("proposedToWhitelist", [
+      EthereumValue.fromAddress(param0)
     ]);
     if (result.reverted) {
       return new CallResult();
     }
     let value = result.value;
-    return CallResult.fromValue(value[0].toI32());
+    return CallResult.fromValue(value[0].toBoolean());
+  }
+
+  ESCROW(): Address {
+    let result = super.call("ESCROW", []);
+
+    return result[0].toAddress();
+  }
+
+  try_ESCROW(): CallResult<Address> {
+    let result = super.tryCall("ESCROW", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toAddress());
+  }
+
+  GUILD(): Address {
+    let result = super.call("GUILD", []);
+
+    return result[0].toAddress();
+  }
+
+  try_GUILD(): CallResult<Address> {
+    let result = super.tryCall("GUILD", []);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toAddress());
+  }
+
+  submitWhitelistProposal(tokenToWhitelist: Address, details: string): BigInt {
+    let result = super.call("submitWhitelistProposal", [
+      EthereumValue.fromAddress(tokenToWhitelist),
+      EthereumValue.fromString(details)
+    ]);
+
+    return result[0].toBigInt();
+  }
+
+  try_submitWhitelistProposal(
+    tokenToWhitelist: Address,
+    details: string
+  ): CallResult<BigInt> {
+    let result = super.tryCall("submitWhitelistProposal", [
+      EthereumValue.fromAddress(tokenToWhitelist),
+      EthereumValue.fromString(details)
+    ]);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
   }
 }
 
-export class ConstructorCall extends EthereumCall {
-  get inputs(): ConstructorCall__Inputs {
-    return new ConstructorCall__Inputs(this);
+export class WithdrawBalanceCall extends EthereumCall {
+  get inputs(): WithdrawBalanceCall__Inputs {
+    return new WithdrawBalanceCall__Inputs(this);
   }
 
-  get outputs(): ConstructorCall__Outputs {
-    return new ConstructorCall__Outputs(this);
+  get outputs(): WithdrawBalanceCall__Outputs {
+    return new WithdrawBalanceCall__Outputs(this);
   }
 }
 
-export class ConstructorCall__Inputs {
-  _call: ConstructorCall;
+export class WithdrawBalanceCall__Inputs {
+  _call: WithdrawBalanceCall;
 
-  constructor(call: ConstructorCall) {
+  constructor(call: WithdrawBalanceCall) {
     this._call = call;
   }
 
-  get _summoner(): Address {
+  get token(): Address {
     return this._call.inputValues[0].value.toAddress();
   }
 
-  get _approvedTokens(): Array<Address> {
-    return this._call.inputValues[1].value.toAddressArray();
-  }
-
-  get _periodDuration(): BigInt {
-    return this._call.inputValues[2].value.toBigInt();
-  }
-
-  get _votingPeriodLength(): BigInt {
-    return this._call.inputValues[3].value.toBigInt();
-  }
-
-  get _gracePeriodLength(): BigInt {
-    return this._call.inputValues[4].value.toBigInt();
-  }
-
-  get _proposalDeposit(): BigInt {
-    return this._call.inputValues[5].value.toBigInt();
-  }
-
-  get _dilutionBound(): BigInt {
-    return this._call.inputValues[6].value.toBigInt();
-  }
-
-  get _processingReward(): BigInt {
-    return this._call.inputValues[7].value.toBigInt();
+  get amount(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
   }
 }
 
-export class ConstructorCall__Outputs {
-  _call: ConstructorCall;
+export class WithdrawBalanceCall__Outputs {
+  _call: WithdrawBalanceCall;
 
-  constructor(call: ConstructorCall) {
+  constructor(call: WithdrawBalanceCall) {
+    this._call = call;
+  }
+}
+
+export class SubmitGuildKickProposalCall extends EthereumCall {
+  get inputs(): SubmitGuildKickProposalCall__Inputs {
+    return new SubmitGuildKickProposalCall__Inputs(this);
+  }
+
+  get outputs(): SubmitGuildKickProposalCall__Outputs {
+    return new SubmitGuildKickProposalCall__Outputs(this);
+  }
+}
+
+export class SubmitGuildKickProposalCall__Inputs {
+  _call: SubmitGuildKickProposalCall;
+
+  constructor(call: SubmitGuildKickProposalCall) {
+    this._call = call;
+  }
+
+  get memberToKick(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+
+  get details(): string {
+    return this._call.inputValues[1].value.toString();
+  }
+}
+
+export class SubmitGuildKickProposalCall__Outputs {
+  _call: SubmitGuildKickProposalCall;
+
+  constructor(call: SubmitGuildKickProposalCall) {
+    this._call = call;
+  }
+
+  get proposalId(): BigInt {
+    return this._call.outputValues[0].value.toBigInt();
+  }
+}
+
+export class RagequitCall extends EthereumCall {
+  get inputs(): RagequitCall__Inputs {
+    return new RagequitCall__Inputs(this);
+  }
+
+  get outputs(): RagequitCall__Outputs {
+    return new RagequitCall__Outputs(this);
+  }
+}
+
+export class RagequitCall__Inputs {
+  _call: RagequitCall;
+
+  constructor(call: RagequitCall) {
+    this._call = call;
+  }
+
+  get sharesToBurn(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get lootToBurn(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
+}
+
+export class RagequitCall__Outputs {
+  _call: RagequitCall;
+
+  constructor(call: RagequitCall) {
+    this._call = call;
+  }
+}
+
+export class UpdateDelegateKeyCall extends EthereumCall {
+  get inputs(): UpdateDelegateKeyCall__Inputs {
+    return new UpdateDelegateKeyCall__Inputs(this);
+  }
+
+  get outputs(): UpdateDelegateKeyCall__Outputs {
+    return new UpdateDelegateKeyCall__Outputs(this);
+  }
+}
+
+export class UpdateDelegateKeyCall__Inputs {
+  _call: UpdateDelegateKeyCall;
+
+  constructor(call: UpdateDelegateKeyCall) {
+    this._call = call;
+  }
+
+  get newDelegateKey(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class UpdateDelegateKeyCall__Outputs {
+  _call: UpdateDelegateKeyCall;
+
+  constructor(call: UpdateDelegateKeyCall) {
+    this._call = call;
+  }
+}
+
+export class ProcessWhitelistProposalCall extends EthereumCall {
+  get inputs(): ProcessWhitelistProposalCall__Inputs {
+    return new ProcessWhitelistProposalCall__Inputs(this);
+  }
+
+  get outputs(): ProcessWhitelistProposalCall__Outputs {
+    return new ProcessWhitelistProposalCall__Outputs(this);
+  }
+}
+
+export class ProcessWhitelistProposalCall__Inputs {
+  _call: ProcessWhitelistProposalCall;
+
+  constructor(call: ProcessWhitelistProposalCall) {
+    this._call = call;
+  }
+
+  get proposalIndex(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class ProcessWhitelistProposalCall__Outputs {
+  _call: ProcessWhitelistProposalCall;
+
+  constructor(call: ProcessWhitelistProposalCall) {
+    this._call = call;
+  }
+}
+
+export class WithdrawBalancesCall extends EthereumCall {
+  get inputs(): WithdrawBalancesCall__Inputs {
+    return new WithdrawBalancesCall__Inputs(this);
+  }
+
+  get outputs(): WithdrawBalancesCall__Outputs {
+    return new WithdrawBalancesCall__Outputs(this);
+  }
+}
+
+export class WithdrawBalancesCall__Inputs {
+  _call: WithdrawBalancesCall;
+
+  constructor(call: WithdrawBalancesCall) {
+    this._call = call;
+  }
+
+  get tokens(): Array<Address> {
+    return this._call.inputValues[0].value.toAddressArray();
+  }
+
+  get amounts(): Array<BigInt> {
+    return this._call.inputValues[1].value.toBigIntArray();
+  }
+
+  get max(): boolean {
+    return this._call.inputValues[2].value.toBoolean();
+  }
+}
+
+export class WithdrawBalancesCall__Outputs {
+  _call: WithdrawBalancesCall;
+
+  constructor(call: WithdrawBalancesCall) {
     this._call = call;
   }
 }
@@ -1227,82 +1362,6 @@ export class SubmitProposalCall__Outputs {
   }
 }
 
-export class SubmitWhitelistProposalCall extends EthereumCall {
-  get inputs(): SubmitWhitelistProposalCall__Inputs {
-    return new SubmitWhitelistProposalCall__Inputs(this);
-  }
-
-  get outputs(): SubmitWhitelistProposalCall__Outputs {
-    return new SubmitWhitelistProposalCall__Outputs(this);
-  }
-}
-
-export class SubmitWhitelistProposalCall__Inputs {
-  _call: SubmitWhitelistProposalCall;
-
-  constructor(call: SubmitWhitelistProposalCall) {
-    this._call = call;
-  }
-
-  get tokenToWhitelist(): Address {
-    return this._call.inputValues[0].value.toAddress();
-  }
-
-  get details(): string {
-    return this._call.inputValues[1].value.toString();
-  }
-}
-
-export class SubmitWhitelistProposalCall__Outputs {
-  _call: SubmitWhitelistProposalCall;
-
-  constructor(call: SubmitWhitelistProposalCall) {
-    this._call = call;
-  }
-
-  get proposalId(): BigInt {
-    return this._call.outputValues[0].value.toBigInt();
-  }
-}
-
-export class SubmitGuildKickProposalCall extends EthereumCall {
-  get inputs(): SubmitGuildKickProposalCall__Inputs {
-    return new SubmitGuildKickProposalCall__Inputs(this);
-  }
-
-  get outputs(): SubmitGuildKickProposalCall__Outputs {
-    return new SubmitGuildKickProposalCall__Outputs(this);
-  }
-}
-
-export class SubmitGuildKickProposalCall__Inputs {
-  _call: SubmitGuildKickProposalCall;
-
-  constructor(call: SubmitGuildKickProposalCall) {
-    this._call = call;
-  }
-
-  get memberToKick(): Address {
-    return this._call.inputValues[0].value.toAddress();
-  }
-
-  get details(): string {
-    return this._call.inputValues[1].value.toString();
-  }
-}
-
-export class SubmitGuildKickProposalCall__Outputs {
-  _call: SubmitGuildKickProposalCall;
-
-  constructor(call: SubmitGuildKickProposalCall) {
-    this._call = call;
-  }
-
-  get proposalId(): BigInt {
-    return this._call.outputValues[0].value.toBigInt();
-  }
-}
-
 export class SponsorProposalCall extends EthereumCall {
   get inputs(): SponsorProposalCall__Inputs {
     return new SponsorProposalCall__Inputs(this);
@@ -1350,7 +1409,7 @@ export class SubmitVoteCall__Inputs {
     this._call = call;
   }
 
-  get proposalIndex(): BigInt {
+  get proposalQueueIndex(): BigInt {
     return this._call.inputValues[0].value.toBigInt();
   }
 
@@ -1363,130 +1422,6 @@ export class SubmitVoteCall__Outputs {
   _call: SubmitVoteCall;
 
   constructor(call: SubmitVoteCall) {
-    this._call = call;
-  }
-}
-
-export class ProcessProposalCall extends EthereumCall {
-  get inputs(): ProcessProposalCall__Inputs {
-    return new ProcessProposalCall__Inputs(this);
-  }
-
-  get outputs(): ProcessProposalCall__Outputs {
-    return new ProcessProposalCall__Outputs(this);
-  }
-}
-
-export class ProcessProposalCall__Inputs {
-  _call: ProcessProposalCall;
-
-  constructor(call: ProcessProposalCall) {
-    this._call = call;
-  }
-
-  get proposalIndex(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-}
-
-export class ProcessProposalCall__Outputs {
-  _call: ProcessProposalCall;
-
-  constructor(call: ProcessProposalCall) {
-    this._call = call;
-  }
-}
-
-export class ProcessWhitelistProposalCall extends EthereumCall {
-  get inputs(): ProcessWhitelistProposalCall__Inputs {
-    return new ProcessWhitelistProposalCall__Inputs(this);
-  }
-
-  get outputs(): ProcessWhitelistProposalCall__Outputs {
-    return new ProcessWhitelistProposalCall__Outputs(this);
-  }
-}
-
-export class ProcessWhitelistProposalCall__Inputs {
-  _call: ProcessWhitelistProposalCall;
-
-  constructor(call: ProcessWhitelistProposalCall) {
-    this._call = call;
-  }
-
-  get proposalIndex(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-}
-
-export class ProcessWhitelistProposalCall__Outputs {
-  _call: ProcessWhitelistProposalCall;
-
-  constructor(call: ProcessWhitelistProposalCall) {
-    this._call = call;
-  }
-}
-
-export class ProcessGuildKickProposalCall extends EthereumCall {
-  get inputs(): ProcessGuildKickProposalCall__Inputs {
-    return new ProcessGuildKickProposalCall__Inputs(this);
-  }
-
-  get outputs(): ProcessGuildKickProposalCall__Outputs {
-    return new ProcessGuildKickProposalCall__Outputs(this);
-  }
-}
-
-export class ProcessGuildKickProposalCall__Inputs {
-  _call: ProcessGuildKickProposalCall;
-
-  constructor(call: ProcessGuildKickProposalCall) {
-    this._call = call;
-  }
-
-  get proposalIndex(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-}
-
-export class ProcessGuildKickProposalCall__Outputs {
-  _call: ProcessGuildKickProposalCall;
-
-  constructor(call: ProcessGuildKickProposalCall) {
-    this._call = call;
-  }
-}
-
-export class RagequitCall extends EthereumCall {
-  get inputs(): RagequitCall__Inputs {
-    return new RagequitCall__Inputs(this);
-  }
-
-  get outputs(): RagequitCall__Outputs {
-    return new RagequitCall__Outputs(this);
-  }
-}
-
-export class RagequitCall__Inputs {
-  _call: RagequitCall;
-
-  constructor(call: RagequitCall) {
-    this._call = call;
-  }
-
-  get sharesToBurn(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-
-  get lootToBurn(): BigInt {
-    return this._call.inputValues[1].value.toBigInt();
-  }
-}
-
-export class RagequitCall__Outputs {
-  _call: RagequitCall;
-
-  constructor(call: RagequitCall) {
     this._call = call;
   }
 }
@@ -1521,78 +1456,6 @@ export class RagekickCall__Outputs {
   }
 }
 
-export class WithdrawBalanceCall extends EthereumCall {
-  get inputs(): WithdrawBalanceCall__Inputs {
-    return new WithdrawBalanceCall__Inputs(this);
-  }
-
-  get outputs(): WithdrawBalanceCall__Outputs {
-    return new WithdrawBalanceCall__Outputs(this);
-  }
-}
-
-export class WithdrawBalanceCall__Inputs {
-  _call: WithdrawBalanceCall;
-
-  constructor(call: WithdrawBalanceCall) {
-    this._call = call;
-  }
-
-  get token(): Address {
-    return this._call.inputValues[0].value.toAddress();
-  }
-
-  get amount(): BigInt {
-    return this._call.inputValues[1].value.toBigInt();
-  }
-}
-
-export class WithdrawBalanceCall__Outputs {
-  _call: WithdrawBalanceCall;
-
-  constructor(call: WithdrawBalanceCall) {
-    this._call = call;
-  }
-}
-
-export class WithdrawBalancesCall extends EthereumCall {
-  get inputs(): WithdrawBalancesCall__Inputs {
-    return new WithdrawBalancesCall__Inputs(this);
-  }
-
-  get outputs(): WithdrawBalancesCall__Outputs {
-    return new WithdrawBalancesCall__Outputs(this);
-  }
-}
-
-export class WithdrawBalancesCall__Inputs {
-  _call: WithdrawBalancesCall;
-
-  constructor(call: WithdrawBalancesCall) {
-    this._call = call;
-  }
-
-  get tokens(): Array<Address> {
-    return this._call.inputValues[0].value.toAddressArray();
-  }
-
-  get amounts(): Array<BigInt> {
-    return this._call.inputValues[1].value.toBigIntArray();
-  }
-
-  get max(): boolean {
-    return this._call.inputValues[2].value.toBoolean();
-  }
-}
-
-export class WithdrawBalancesCall__Outputs {
-  _call: WithdrawBalancesCall;
-
-  constructor(call: WithdrawBalancesCall) {
-    this._call = call;
-  }
-}
-
 export class CancelProposalCall extends EthereumCall {
   get inputs(): CancelProposalCall__Inputs {
     return new CancelProposalCall__Inputs(this);
@@ -1623,32 +1486,158 @@ export class CancelProposalCall__Outputs {
   }
 }
 
-export class UpdateDelegateKeyCall extends EthereumCall {
-  get inputs(): UpdateDelegateKeyCall__Inputs {
-    return new UpdateDelegateKeyCall__Inputs(this);
+export class ProcessGuildKickProposalCall extends EthereumCall {
+  get inputs(): ProcessGuildKickProposalCall__Inputs {
+    return new ProcessGuildKickProposalCall__Inputs(this);
   }
 
-  get outputs(): UpdateDelegateKeyCall__Outputs {
-    return new UpdateDelegateKeyCall__Outputs(this);
+  get outputs(): ProcessGuildKickProposalCall__Outputs {
+    return new ProcessGuildKickProposalCall__Outputs(this);
   }
 }
 
-export class UpdateDelegateKeyCall__Inputs {
-  _call: UpdateDelegateKeyCall;
+export class ProcessGuildKickProposalCall__Inputs {
+  _call: ProcessGuildKickProposalCall;
 
-  constructor(call: UpdateDelegateKeyCall) {
+  constructor(call: ProcessGuildKickProposalCall) {
     this._call = call;
   }
 
-  get newDelegateKey(): Address {
-    return this._call.inputValues[0].value.toAddress();
+  get proposalIndex(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
   }
 }
 
-export class UpdateDelegateKeyCall__Outputs {
-  _call: UpdateDelegateKeyCall;
+export class ProcessGuildKickProposalCall__Outputs {
+  _call: ProcessGuildKickProposalCall;
 
-  constructor(call: UpdateDelegateKeyCall) {
+  constructor(call: ProcessGuildKickProposalCall) {
+    this._call = call;
+  }
+}
+
+export class ProcessProposalCall extends EthereumCall {
+  get inputs(): ProcessProposalCall__Inputs {
+    return new ProcessProposalCall__Inputs(this);
+  }
+
+  get outputs(): ProcessProposalCall__Outputs {
+    return new ProcessProposalCall__Outputs(this);
+  }
+}
+
+export class ProcessProposalCall__Inputs {
+  _call: ProcessProposalCall;
+
+  constructor(call: ProcessProposalCall) {
+    this._call = call;
+  }
+
+  get proposalIndex(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class ProcessProposalCall__Outputs {
+  _call: ProcessProposalCall;
+
+  constructor(call: ProcessProposalCall) {
+    this._call = call;
+  }
+}
+
+export class SubmitWhitelistProposalCall extends EthereumCall {
+  get inputs(): SubmitWhitelistProposalCall__Inputs {
+    return new SubmitWhitelistProposalCall__Inputs(this);
+  }
+
+  get outputs(): SubmitWhitelistProposalCall__Outputs {
+    return new SubmitWhitelistProposalCall__Outputs(this);
+  }
+}
+
+export class SubmitWhitelistProposalCall__Inputs {
+  _call: SubmitWhitelistProposalCall;
+
+  constructor(call: SubmitWhitelistProposalCall) {
+    this._call = call;
+  }
+
+  get tokenToWhitelist(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+
+  get details(): string {
+    return this._call.inputValues[1].value.toString();
+  }
+}
+
+export class SubmitWhitelistProposalCall__Outputs {
+  _call: SubmitWhitelistProposalCall;
+
+  constructor(call: SubmitWhitelistProposalCall) {
+    this._call = call;
+  }
+
+  get proposalId(): BigInt {
+    return this._call.outputValues[0].value.toBigInt();
+  }
+}
+
+export class ConstructorCall extends EthereumCall {
+  get inputs(): ConstructorCall__Inputs {
+    return new ConstructorCall__Inputs(this);
+  }
+
+  get outputs(): ConstructorCall__Outputs {
+    return new ConstructorCall__Outputs(this);
+  }
+}
+
+export class ConstructorCall__Inputs {
+  _call: ConstructorCall;
+
+  constructor(call: ConstructorCall) {
+    this._call = call;
+  }
+
+  get _summoner(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+
+  get _approvedTokens(): Array<Address> {
+    return this._call.inputValues[1].value.toAddressArray();
+  }
+
+  get _periodDuration(): BigInt {
+    return this._call.inputValues[2].value.toBigInt();
+  }
+
+  get _votingPeriodLength(): BigInt {
+    return this._call.inputValues[3].value.toBigInt();
+  }
+
+  get _gracePeriodLength(): BigInt {
+    return this._call.inputValues[4].value.toBigInt();
+  }
+
+  get _proposalDeposit(): BigInt {
+    return this._call.inputValues[5].value.toBigInt();
+  }
+
+  get _dilutionBound(): BigInt {
+    return this._call.inputValues[6].value.toBigInt();
+  }
+
+  get _processingReward(): BigInt {
+    return this._call.inputValues[7].value.toBigInt();
+  }
+}
+
+export class ConstructorCall__Outputs {
+  _call: ConstructorCall;
+
+  constructor(call: ConstructorCall) {
     this._call = call;
   }
 }
