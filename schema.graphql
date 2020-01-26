@@ -8,7 +8,7 @@ type Moloch @entity {
   proposalDeposit: BigInt!
   dilutionBound: BigInt!
   processingReward: BigInt!
-  depositToken: Bytes!
+  depositToken: Token!
   approvedTokens:[Token!]!
 
   "NOTE: Resolves to all Token entities that include the DAO's ID."
@@ -81,7 +81,7 @@ type Member @entity {
   votes: [Vote!] @derivedFrom(field: "member")
   submissions: [Proposal!] @derivedFrom(field: "member")
   tokenBalances: [TokenBalance!] @derivedFrom(field: "member")
-  proposedToKick: Boolean
+  proposedToKick: Boolean!
   jailed: Proposal
 }
 

@@ -11,6 +11,7 @@ interface DaoSpell {
   proposalDeposit: BigInt;
   dilutionBound: BigInt;
   processingReward: BigInt;
+  depositToken:string;
   approvedTokens: string[];
   guildTokenBalance: string[];
   escrowTokenBalance: string[];
@@ -23,12 +24,14 @@ interface DaoSpell {
   proposedToWhitelist: string[];
   proposedToKick: string[];
   proposedToFund: string[];
+  proposedToTrade: string[];
 }
 
 interface GuildTokenBalanceSpell {
   moloch: string;
   token: string;
   tokenBalance: BigInt;
+  member:string;
   guildBank: true;
   ecrowBank: false;
   memberBank: false;
@@ -37,6 +40,7 @@ interface MemberTokenBalanceSpell{
   moloch: string;
   token: string;
   tokenBalance: BigInt;
+  member:string;
   guildBank: false;
   ecrowBank: false;
   memberBank: true;
@@ -46,6 +50,7 @@ interface EscrowTokenBalanceSpell {
   moloch: string;
   token: string;
   tokenBalance: BigInt;
+  member:string;
   guildBank: false;
   ecrowBank: true;
   memberBank: false;
@@ -58,7 +63,6 @@ interface UserSpell{
   shares: BigInt;
   loot: BigInt;
   exists: boolean;
-  highestIndexYesVote: BigInt;
   tokenTribute: BigInt;
   didRagequit: boolean;
   proposedToKick: boolean;
@@ -110,7 +114,7 @@ interface ProposalSpell{
 interface VoteSpell{
   timestamp: string;
   proposal: string;
-  memberId: string;
+  member: string;
   uintVote: any;
 }
 
@@ -167,6 +171,7 @@ function internalTransfer(molochId:string, from:Address, to:Address, token:Addre
   addToBalance(molochId, to, token, amount);
 }
 function createMemberTokenBalance( molochId:string, member:Address, token:Address, amount:BigInt ):string {
+  const memberId = molochId.concat("-member-").concat(member.toHex());
   const tokenId = molochId.concat("-token-").concat(token.toHex());
   const memberTokenBalanceId = tokenId.concat("-member-").concat(member.toHex());
   let memberTokenBalance = new TokenBalance(memberTokenBalanceId);
@@ -174,6 +179,7 @@ function createMemberTokenBalance( molochId:string, member:Address, token:Addres
     moloch: molochId,
     token: tokenId,
     tokenBalance: amount,
+    member: memberId,
     guildBank: false,
     ecrowBank: false,
     memberBank: true,
@@ -183,6 +189,7 @@ function createMemberTokenBalance( molochId:string, member:Address, token:Addres
   return memberTokenBalanceId;
 }
 function createEscrowTokenBalance(molochId:string, token:Address):string {
+  const memberId = molochId.concat("-member-").concat(ESCROW.toHex());
   const tokenId = molochId.concat("-token-").concat(token.toHex());
   const escrowTokenBalanceId = tokenId.concat("-member-").concat(ESCROW.toHex());
   let escrowTokenBalance = new TokenBalance(escrowTokenBalanceId);
@@ -190,6 +197,7 @@ function createEscrowTokenBalance(molochId:string, token:Address):string {
     moloch: molochId,
     token: tokenId,
     tokenBalance: BigInt.fromI32(0),
+    member: memberId,
     guildBank: false,
     ecrowBank: true,
     memberBank: false,
@@ -199,6 +207,7 @@ function createEscrowTokenBalance(molochId:string, token:Address):string {
   return escrowTokenBalanceId;
 }
 function createGuildTokenBalance(molochId:string, token:Address):string {
+  const memberId = molochId.concat("-member-").concat(GUILD.toHex());
   const tokenId = molochId.concat("-token-").concat(token.toHex());
   const guildTokenBalanceId = tokenId.concat("-member-").concat(GUILD.toHex());
   let guildTokenBalance = new TokenBalance(guildTokenBalanceId);
@@ -206,6 +215,7 @@ function createGuildTokenBalance(molochId:string, token:Address):string {
     moloch: molochId,
     token: tokenId,
     tokenBalance: BigInt.fromI32(0),
+    member:memberId,
     guildBank: true,
     ecrowBank: false,
     memberBank: false
@@ -248,6 +258,7 @@ export function handleSummonComplete(event: SummonComplete): void {
     proposalDeposit,
     dilutionBound,
     processingReward,
+    depositToken: approvedTokens[0],
     approvedTokens,
     guildTokenBalance: guildTokenBalance,
     escrowTokenBalance: escrowTokenBalance,
@@ -259,7 +270,8 @@ export function handleSummonComplete(event: SummonComplete): void {
     proposedToJoin:new Array<string>(),
     proposedToWhitelist:new Array<string>(),
     proposedToKick:new Array<string>(),
-    proposedToFund:new Array<string>()
+    proposedToFund:new Array<string>(),
+    proposedToTrade:new Array<string>()
   };
   moloch = Object.assign({}, moloch, daoSpell);
   moloch.save();
@@ -274,7 +286,6 @@ export function handleSummonComplete(event: SummonComplete): void {
     shares: BigInt.fromI32(1),
     loot: BigInt.fromI32(0),
     exists: true,
-    highestIndexYesVote: BigInt.fromI32(0),
     tokenTribute: BigInt.fromI32(0),
     didRagequit: false,
     proposedToKick:false
@@ -357,7 +368,7 @@ export function handleSubmitVote(event: SubmitVote):void{
   const voteSpell: VoteSpell = {
     timestamp: event.block.timestamp.toString(),
     proposal: proposalId,
-    memberId,
+    member:memberId,
     uintVote
   }
 
@@ -478,7 +489,6 @@ export function handleProcessProposal(event: ProcessProposal):void{
         shares: sharesRequested,
         loot: lootRequested,
         exists: true,
-        highestIndexYesVote: BigInt.fromI32(0),
         tokenTribute: BigInt.fromI32(0),
         didRagequit: false,
         proposedToKick:false
