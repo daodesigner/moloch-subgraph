@@ -15,6 +15,56 @@ import {
   CallResult
 } from "@graphprotocol/graph-ts";
 
+export class SummonComplete extends EthereumEvent {
+  get params(): SummonComplete__Params {
+    return new SummonComplete__Params(this);
+  }
+}
+
+export class SummonComplete__Params {
+  _event: SummonComplete;
+
+  constructor(event: SummonComplete) {
+    this._event = event;
+  }
+
+  get summoner(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get tokens(): Array<Address> {
+    return this._event.parameters[1].value.toAddressArray();
+  }
+
+  get summoningTime(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+
+  get periodDuration(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+
+  get votingPeriodLength(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
+  }
+
+  get gracePeriodLength(): BigInt {
+    return this._event.parameters[5].value.toBigInt();
+  }
+
+  get proposalDeposit(): BigInt {
+    return this._event.parameters[6].value.toBigInt();
+  }
+
+  get dilutionBound(): BigInt {
+    return this._event.parameters[7].value.toBigInt();
+  }
+
+  get processingReward(): BigInt {
+    return this._event.parameters[8].value.toBigInt();
+  }
+}
+
 export class SubmitProposal extends EthereumEvent {
   get params(): SubmitProposal__Params {
     return new SubmitProposal__Params(this);
@@ -64,7 +114,7 @@ export class SubmitProposal__Params {
     return this._event.parameters[8].value.toBooleanArray();
   }
 
-  get proposalIndex(): BigInt {
+  get proposalId(): BigInt {
     return this._event.parameters[9].value.toBigInt();
   }
 
@@ -98,11 +148,11 @@ export class SponsorProposal__Params {
     return this._event.parameters[1].value.toAddress();
   }
 
-  get proposalIndex(): BigInt {
+  get proposalId(): BigInt {
     return this._event.parameters[2].value.toBigInt();
   }
 
-  get proposalQueueIndex(): BigInt {
+  get proposalIndex(): BigInt {
     return this._event.parameters[3].value.toBigInt();
   }
 
@@ -124,11 +174,11 @@ export class SubmitVote__Params {
     this._event = event;
   }
 
-  get proposalIndex(): BigInt {
+  get proposalId(): BigInt {
     return this._event.parameters[0].value.toBigInt();
   }
 
-  get proposalQueueIndex(): BigInt {
+  get proposalIndex(): BigInt {
     return this._event.parameters[1].value.toBigInt();
   }
 
@@ -262,12 +312,16 @@ export class CancelProposal__Params {
     this._event = event;
   }
 
-  get proposalIndex(): BigInt {
+  get proposalId(): BigInt {
     return this._event.parameters[0].value.toBigInt();
   }
 
-  get applicantAddress(): Address {
+  get memberAddress(): Address {
     return this._event.parameters[1].value.toAddress();
+  }
+
+  get applicantAddress(): Address {
+    return this._event.parameters[2].value.toAddress();
   }
 }
 
@@ -293,53 +347,29 @@ export class UpdateDelegateKey__Params {
   }
 }
 
-export class SummonComplete extends EthereumEvent {
-  get params(): SummonComplete__Params {
-    return new SummonComplete__Params(this);
+export class Withdraw extends EthereumEvent {
+  get params(): Withdraw__Params {
+    return new Withdraw__Params(this);
   }
 }
 
-export class SummonComplete__Params {
-  _event: SummonComplete;
+export class Withdraw__Params {
+  _event: Withdraw;
 
-  constructor(event: SummonComplete) {
+  constructor(event: Withdraw) {
     this._event = event;
   }
 
-  get summoner(): Address {
+  get memberAddress(): Address {
     return this._event.parameters[0].value.toAddress();
   }
 
-  get tokens(): Array<Address> {
-    return this._event.parameters[1].value.toAddressArray();
+  get token(): Address {
+    return this._event.parameters[1].value.toAddress();
   }
 
-  get summoningTime(): BigInt {
+  get amount(): BigInt {
     return this._event.parameters[2].value.toBigInt();
-  }
-
-  get periodDuration(): BigInt {
-    return this._event.parameters[3].value.toBigInt();
-  }
-
-  get votingPeriodLength(): BigInt {
-    return this._event.parameters[4].value.toBigInt();
-  }
-
-  get gracePeriodLength(): BigInt {
-    return this._event.parameters[5].value.toBigInt();
-  }
-
-  get proposalDeposit(): BigInt {
-    return this._event.parameters[6].value.toBigInt();
-  }
-
-  get dilutionBound(): BigInt {
-    return this._event.parameters[7].value.toBigInt();
-  }
-
-  get processingReward(): BigInt {
-    return this._event.parameters[8].value.toBigInt();
   }
 }
 
@@ -1409,7 +1439,7 @@ export class SubmitVoteCall__Inputs {
     this._call = call;
   }
 
-  get proposalQueueIndex(): BigInt {
+  get proposalIndex(): BigInt {
     return this._call.inputValues[0].value.toBigInt();
   }
 

@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: Moloch V2 Subgraph to support sultiple tokens and new proposal types
+description: Moloch V2 Subgraph to support multiple tokens and new proposal types
 repository: https://github.com/daodesigner/moloch-subgraph
 schema:
   file: ./schema.graphql
@@ -16,7 +16,7 @@ dataSources:
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - Meta
+        - Moloch
         - TokenBalance
         - Token
         - Member

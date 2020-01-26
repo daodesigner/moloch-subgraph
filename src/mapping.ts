@@ -79,7 +79,7 @@ interface NewTokenSpell{
 }
 
 interface ProposalSpell{
-  proposalIndex: BigInt;
+  proposalId: BigInt;
   moloch: string;
   timestamp: string;
   member: string;
@@ -119,7 +119,7 @@ interface VoteSpell{
 }
 
 interface SponsorProposalSpell{
-  proposalQueueIndex: BigInt;
+  proposalIndex: BigInt;
   sponsor: Address;
   startingPeriod: BigInt;
   sponsored: boolean;
@@ -297,20 +297,20 @@ export function handleSummonComplete(event: SummonComplete): void {
 
 }
 
-// TODO - event: event SubmitProposal(uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress, address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, bool[6] flags, string details);
+// TODO - event SubmitProposal(address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, string details, bool[6] flags, uint256 proposalId, address indexed delegateKey, address indexed memberAddress);
 // handler: handleSubmitProposal
 export function handleSubmitProposal(event: SubmitProposal):void {
   const molochId = event.address.toHex();
-  const {proposalIndex, delegateKey, memberAddress, applicant, sharesRequested, lootRequested, tributeOffered, tributeToken, paymentRequested, paymentToken,flags,details} = event.params;
-  const proposalId = molochId.concat("-proposal-").concat(proposalIndex.toString());
+  const {proposalId, delegateKey, memberAddress, applicant, sharesRequested, lootRequested, tributeOffered, tributeToken, paymentRequested, paymentToken,flags,details} = event.params;
+  const newProposalId = molochId.concat("-proposal-").concat(proposalId.toString());
   const memberId = molochId.concat("-member-").concat(memberAddress.toHex());
   const newMember = Member.load(molochId.concat("-member-").concat(applicant.toHex()))?false:true;
   // For trades, members deposit tribute in the token they want to sell to the dao, and request payment in the token they wish to receive.
   const trade =  paymentToken && tributeToken && tributeOffered > BigInt.fromI32(0) && paymentRequested > BigInt.fromI32(0);
 
-  let proposal = new Proposal(proposalId);
+  let proposal = new Proposal(newProposalId);
   const proposalSpell:ProposalSpell = {
-    proposalIndex,
+    proposalId,
     moloch: molochId,
     timestamp: event.block.timestamp.toString(),
     member: memberId,
@@ -354,26 +354,26 @@ export function handleSubmitProposal(event: SubmitProposal):void {
   
 }
 
-// TODO - event: SubmitVote(indexed uint256,indexed address,indexed address,uint8)
+// TODO - event SubmitVote(uint256 proposalId, uint256 indexed proposalIndex, address indexed delegateKey, address indexed memberAddress, uint8 uintVote);
 // handler: handleSubmitVote
 export function handleSubmitVote(event: SubmitVote):void{
-  const { proposalIndex, proposalQueueIndex, delegateKey, memberAddress, uintVote} = event.params;
+  const { proposalId, proposalIndex, delegateKey, memberAddress, uintVote} = event.params;
   const molochId = event.address.toHex();
   const memberId = molochId.concat("-member-").concat(memberAddress.toHex());
-  const proposalId = molochId.concat("-proposal-").concat(proposalIndex.toString());
-  const voteId = memberId.concat("-vote-").concat(proposalIndex.toString());
+  const proposalVotedId = molochId.concat("-proposal-").concat(proposalId.toString());
+  const voteId = memberId.concat("-vote-").concat(proposalId.toString());
   
   let vote = new Vote(voteId);
 
   const voteSpell: VoteSpell = {
     timestamp: event.block.timestamp.toString(),
-    proposal: proposalId,
+    proposal: proposalVotedId,
     member:memberId,
     uintVote
   }
 
   let moloch = Moloch.load(molochId);
-  let proposal = Proposal.load(proposalId);
+  let proposal = Proposal.load(proposalVotedId);
   let member = Member.load(memberId);
 
   switch(Number(uintVote)){
@@ -384,7 +384,7 @@ export function handleSubmitVote(event: SubmitVote):void{
       //NOTE: Set maximum of total shares encountered at a yes vote - used to bound dilution for yes voters
       proposal.maxTotalSharesAndLootAtYesVote = moloch.totalLoot.plus(moloch.totalShares);
       //NOTE: Set highest index (latest) yes vote - must be processed for member to ragequit
-      member.highestIndexYesVote = proposalId;
+      member.highestIndexYesVote = proposalVotedId;
       proposal.save();
       member.save();
       break; 
@@ -402,13 +402,13 @@ export function handleSubmitVote(event: SubmitVote):void{
   }
 }
 
-// TODO - event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalIndex, uint256 proposalQueueIndex, uint256 startingPeriod);
+// TODO - event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalId, uint256 proposalIndex, uint256 startingPeriod);
 // handler: handleSponsorProposal
 export function handleSponsorProposal(event:SponsorProposal):void{
-  const {delegateKey, memberAddress, proposalIndex, proposalQueueIndex, startingPeriod} = event.params;
+  const {delegateKey, memberAddress, proposalId, proposalIndex, startingPeriod} = event.params;
   const molochId = event.address.toHex();
   const memberId = molochId.concat("-member-").concat(memberAddress.toHex());
-  const proposalId = molochId.concat("-proposal-").concat(proposalIndex.toString());
+  const sponsorProposalId = molochId.concat("-proposal-").concat(proposalId.toString());
 
   const moloch = Moloch.load(molochId);
   const {depositToken, proposalDeposit} = moloch;
@@ -416,37 +416,37 @@ export function handleSponsorProposal(event:SponsorProposal):void{
   // collect proposal deposit from sponsor and store it in the Moloch until the proposal is processed
   addToBalance(molochId, ESCROW, depositToken, proposalDeposit);
 
-  let proposal = Proposal.load(proposalId);
+  let proposal = Proposal.load(sponsorProposalId);
   const {whitelist, guildkick, newMember, trade} = proposal;
 
   if (newMember){
-    const memberProposals:string[] = [].concat(moloch.proposedToJoin, proposalId);
+    const memberProposals:string[] = [].concat(moloch.proposedToJoin, sponsorProposalId);
     moloch.proposedToJoin = memberProposals;
     moloch.save()
   } 
   else if (whitelist){
-    const whitelistProposals:string[] = [].concat(moloch.proposedToWhitelist, proposalId);
+    const whitelistProposals:string[] = [].concat(moloch.proposedToWhitelist, sponsorProposalId);
     moloch.proposedToWhitelist = whitelistProposals;
     moloch.save()
   } 
   else if(guildkick){
-    const guildkickProposals:string[] = [].concat(moloch.proposedToKick, proposalId);
+    const guildkickProposals:string[] = [].concat(moloch.proposedToKick, sponsorProposalId);
     moloch.proposedToKick = guildkickProposals;
     moloch.save()
   } 
   else if (trade){
-    const tradeProposals:string[] = [].concat(moloch.proposedToTrade, proposalId);
+    const tradeProposals:string[] = [].concat(moloch.proposedToTrade, sponsorProposalId);
     moloch.proposedToTrade = tradeProposals;
     moloch.save()
   }
   else {
-    const projectProposals:string[] = [].concat(moloch.proposedToFund, proposalId);
+    const projectProposals:string[] = [].concat(moloch.proposedToFund, sponsorProposalId);
     moloch.proposedToFund = projectProposals;
     moloch.save()
   }
 
   const sponsorProposalSpell:SponsorProposalSpell = {
-    proposalQueueIndex,
+    proposalIndex,
     sponsor : memberAddress,
     startingPeriod,
     sponsored: true

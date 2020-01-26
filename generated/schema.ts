@@ -114,13 +114,13 @@ export class Moloch extends Entity {
     this.set("processingReward", Value.fromBigInt(value));
   }
 
-  get depositToken(): Bytes {
+  get depositToken(): string {
     let value = this.get("depositToken");
-    return value.toBytes();
+    return value.toString();
   }
 
-  set depositToken(value: Bytes) {
-    this.set("depositToken", Value.fromBytes(value));
+  set depositToken(value: string) {
+    this.set("depositToken", Value.fromString(value));
   }
 
   get approvedTokens(): Array<string> {
