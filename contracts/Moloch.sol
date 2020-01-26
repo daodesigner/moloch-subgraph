@@ -34,17 +34,17 @@ contract Moloch is ReentrancyGuard {
     // ***************
     // EVENTS
     // ***************
-    event SubmitProposal(uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress, address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, bool[6] flags, string details);
+    event SummonComplete(address indexed summoner, address[] tokens, uint256 summoningTime, uint256 periodDuration, uint256 votingPeriodLength, uint256 gracePeriodLength, uint256 proposalDeposit, uint256 dilutionBound, uint256 processingReward);
+    event SubmitProposal(address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, string details, bool[6] flags, uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress);
     event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalIndex, uint256 proposalQueueIndex, uint256 startingPeriod);
-    event SubmitVote(uint256 indexed proposalIndex, address indexed delegateKey, address indexed memberAddress, uint8 uintVote);
+    event SubmitVote(uint256 proposalIndex, uint256 indexed proposalQueueIndex, address indexed delegateKey, address indexed memberAddress, uint8 uintVote);
     event ProcessProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
     event ProcessWhitelistProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
     event ProcessGuildKickProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
     event Ragequit(address indexed memberAddress, uint256 sharesToBurn, uint256 lootToBurn);
     event CancelProposal(uint256 indexed proposalIndex, address applicantAddress);
     event UpdateDelegateKey(address indexed memberAddress, address newDelegateKey);
-    event SummonComplete(address indexed summoner, address[] tokens, uint256 summoningTime, uint256 periodDuration, uint256 votingPeriodLength, uint256 gracePeriodLength, uint256 proposalDeposit, uint256 dilutionBound, uint256 processingReward);
-
+    
     // *******************
     // INTERNAL ACCOUNTING
     // *******************
@@ -249,7 +249,8 @@ contract Moloch is ReentrancyGuard {
 
         proposals[proposalCount] = proposal;
         address memberAddress = memberAddressByDelegateKey[msg.sender];
-        emit SubmitProposal(proposalCount, msg.sender, memberAddress, applicant, sharesRequested, lootRequested, tributeOffered, tributeToken, paymentRequested, paymentToken, flags, details);
+        //NOTE: argument order matters, avoid stack too deep
+        emit SubmitProposal(applicant, sharesRequested, lootRequested, tributeOffered, tributeToken, paymentRequested, paymentToken, details, flags, proposalCount, msg.sender, memberAddress);
         proposalCount += 1;
     }
 
@@ -292,15 +293,18 @@ contract Moloch is ReentrancyGuard {
 
         // append proposal to the queue
         proposalQueue.push(proposalId);
+        // event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalIndex, uint256 proposalQueueIndex, uint256 startingPeriod);
+    
         emit SponsorProposal(msg.sender, memberAddress, proposalId, proposalQueue.length.sub(1), startingPeriod);
     }
-
-    function submitVote(uint256 proposalIndex, uint8 uintVote) public nonReentrant onlyDelegate {
+    //NOTE: first argument is actually proposal queue index, proposalIndex !== proposalQueueIndex in MolochV2
+    //NOTE: this should be clarified or people will end up voting on the wrong proposal since input is on frontend
+    function submitVote(uint256 proposalQueueIndex, uint8 uintVote) public nonReentrant onlyDelegate {
         address memberAddress = memberAddressByDelegateKey[msg.sender];
         Member storage member = members[memberAddress];
 
-        require(proposalIndex < proposalQueue.length, "proposal does not exist");
-        Proposal storage proposal = proposals[proposalQueue[proposalIndex]];
+        require(proposalQueueIndex < proposalQueue.length, "proposal does not exist");
+        Proposal storage proposal = proposals[proposalQueue[proposalQueueIndex]];
 
         require(uintVote < 3, "must be less than 3");
         Vote vote = Vote(uintVote);
@@ -316,8 +320,8 @@ contract Moloch is ReentrancyGuard {
             proposal.yesVotes = proposal.yesVotes.add(member.shares);
 
             // set highest index (latest) yes vote - must be processed for member to ragequit
-            if (proposalIndex > member.highestIndexYesVote) {
-                member.highestIndexYesVote = proposalIndex;
+            if (proposalQueueIndex > member.highestIndexYesVote) {
+                member.highestIndexYesVote = proposalQueueIndex;
             }
 
             // set maximum of total shares encountered at a yes vote - used to bound dilution for yes voters
@@ -328,8 +332,9 @@ contract Moloch is ReentrancyGuard {
         } else if (vote == Vote.No) {
             proposal.noVotes = proposal.noVotes.add(member.shares);
         }
-
-        emit SubmitVote(proposalIndex, msg.sender, memberAddress, uintVote);
+     
+        //NOTE: subgraph indexes by proposalIndex not proposalQueueIndex since proposalQueueIndex isn't set untill it's been sponsored but proposal is created on submission
+        emit SubmitVote(proposalQueue[proposalQueueIndex], proposalQueueIndex, msg.sender, memberAddress, uintVote);
     }
 
     function processProposal(uint256 proposalIndex) public nonReentrant {
@@ -545,7 +550,7 @@ contract Moloch is ReentrancyGuard {
             _withdrawBalance(tokens[i], withdrawAmount);
         }
     }
-
+    //TODO: fire off an event to event source withdrawal in subgraph
     function _withdrawBalance(address token, uint256 amount) internal {
         require(userTokenBalances[msg.sender][token] >= amount, "insufficient balance");
         subtractFromBalance(msg.sender, token, amount);
@@ -561,6 +566,9 @@ contract Moloch is ReentrancyGuard {
         proposal.flags[3] = true; // cancelled
 
         internalTransfer(ESCROW, proposal.proposer, proposal.tributeToken, proposal.tributeOffered);
+        // TODO: add member address since msg.sender might be delegate key and members are indexed by memberaddress since initially delegatekey==memberaddress
+        // address memberAddress = memberAddressByDelegateKey[msg.sender];
+        
         emit CancelProposal(proposalId, msg.sender);
     }
 
