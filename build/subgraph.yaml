@@ -2,13 +2,13 @@ specVersion: 0.0.2
 description: Moloch V2 Subgraph to support multiple tokens and new proposal types
 repository: https://github.com/daodesigner/moloch-subgraph
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: Moloch
     network: development
     source:
-      address: '0xDB2d6eb965E9F0B0960096d5fF08f42B30643381'
+      address: "0xDB2d6eb965E9F0B0960096d5fF08f42B30643381"
       abi: Moloch
       startBlock: 0
     mapping:
@@ -24,11 +24,14 @@ dataSources:
         - Proposal
       abis:
         - name: Moloch
-          file: ./abis/Moloch.json
-      eventHandlers:         
-        - event: SummonComplete(indexed address,address[],uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          file: Moloch/abis/Moloch.json
+      eventHandlers:
+        - event: SummonComplete(indexed
+            address,address[],uint256,uint256,uint256,uint256,uint256,uint256,uint256)
           handler: handleSummonComplete
-        - event: SubmitProposal(indexed address,uint256,uint256,uint256,address,uint256,address,string,bool[6],uint256,indexed address,indexed address)
+        - event: SubmitProposal(indexed
+            address,uint256,uint256,uint256,address,uint256,address,string,bool[6],uint256,indexed
+            address,indexed address)
           handler: handleSubmitProposal
         - event: SubmitVote(uint256,indexed uint256,indexed address,indexed address,uint8)
           handler: handleSubmitVote
@@ -42,5 +45,4 @@ dataSources:
           handler: handleProcessWhitelistProposal
         - event: UpdateDelegateKey(indexed address,address)
           handler: handleUpdateDelegateKey
-
-      file: ./src/mapping.ts
+      file: Moloch/Moloch.wasm

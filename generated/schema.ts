@@ -776,6 +776,15 @@ export class Member extends Entity {
     this.set("proposedToKick", Value.fromBoolean(value));
   }
 
+  get kicked(): boolean {
+    let value = this.get("kicked");
+    return value.toBoolean();
+  }
+
+  set kicked(value: boolean) {
+    this.set("kicked", Value.fromBoolean(value));
+  }
+
   get jailed(): string | null {
     let value = this.get("jailed");
     if (value === null) {
@@ -900,8 +909,8 @@ export class Proposal extends Entity {
     this.set("proposalIndex", Value.fromBigInt(value));
   }
 
-  get proposalQueueIndex(): BigInt | null {
-    let value = this.get("proposalQueueIndex");
+  get proposalId(): BigInt | null {
+    let value = this.get("proposalId");
     if (value === null) {
       return null;
     } else {
@@ -909,11 +918,11 @@ export class Proposal extends Entity {
     }
   }
 
-  set proposalQueueIndex(value: BigInt | null) {
+  set proposalId(value: BigInt | null) {
     if (value === null) {
-      this.unset("proposalQueueIndex");
+      this.unset("proposalId");
     } else {
-      this.set("proposalQueueIndex", Value.fromBigInt(value as BigInt));
+      this.set("proposalId", Value.fromBigInt(value as BigInt));
     }
   }
 

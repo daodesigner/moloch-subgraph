@@ -1,13 +1,15 @@
 require('babel-register')
 require('babel-polyfill')
-const HDWalletProvider = require('truffle-hdwallet-provider')
+const HDWalletProvider = require('@truffle/hdwallet-provider')
 
 module.exports = {
   networks: {
     development: {
       host: '127.0.0.1',
       port: 8545,
-      network_id: '*',
+      gas: 9721975, // <-- Use this high gas value
+      gasPrice: 1000000000,    // <-- Use this low gas price
+      network_id: '*', // Match any network id
     },
     ropsten: {
       provider: function() {
@@ -20,8 +22,17 @@ module.exports = {
     },
   },
   compilers: {
+    
     solc: {
-      version: '0.5.3'    // Fetch exact version from solc-bin (default: truffle's version)
+      version: '0.5.3',
+      evmVersion: 'constantinople',
+      settings: {
+        optimizer: {
+          enabled: true, // Default: false
+          runs: 2000      // Default: 200
+        },
+      }
+      
     }
   }
 }
