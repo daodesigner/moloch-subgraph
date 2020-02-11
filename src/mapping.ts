@@ -2,9 +2,9 @@ import { SummonComplete, SubmitProposal, SubmitVote, ProcessProposal, UpdateDele
 import { BigInt, log, Address, ByteArray, Bytes } from "@graphprotocol/graph-ts";
 import { Moloch, Member, Token, TokenBalance, Proposal, Vote } from '../generated/schema'
 
-
-let ESCROW:Address = Address.fromString("0xdead");
-let GUILD:Address = Address.fromString("0xbeef");
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+let ESCROW = Address.fromString("0x000000000000000000000000000000000000dead");
+let GUILD =  Address.fromString("0x000000000000000000000000000000000000beef");
 
 function loadOrCreateTokenBalance(molochId:string, member:Bytes, token:string):TokenBalance|null {
   let memberTokenBalanceId = token.concat("-member-").concat(member.toHex());
@@ -156,7 +156,7 @@ export function handleSummonComplete(event: SummonComplete): void {
   newMember.exists        = true;
   newMember.tokenTribute  = BigInt.fromI32(0);
   newMember.didRagequit   = false;
-  newMember.proposedToKick=false;
+  newMember.proposedToKick= false;
   newMember.kicked        = false;
 
   newMember.save();
@@ -172,7 +172,7 @@ export function handleSummonComplete(event: SummonComplete): void {
 // TODO - event SubmitProposal(address indexed applicant, uint256 sharesRequested, uint256 lootRequested, uint256 tributeOffered, address tributeToken, uint256 paymentRequested, address paymentToken, string details, bool[6] flags, uint256 proposalId, address indexed delegateKey, address indexed memberAddress);
 // handler: handleSubmitProposal
 export function handleSubmitProposal(event: SubmitProposal):void {
-  let molochId = event.address.toHex();
+  let molochId = event.address.toHexString();
   
   let newProposalId = molochId.concat("-proposal-").concat(event.params.proposalId.toString());
   let memberId = molochId.concat("-member-").concat(event.params.memberAddress.toHex());
@@ -191,7 +191,7 @@ export function handleSubmitProposal(event: SubmitProposal):void {
   proposal.delegateKey     = event.params.delegateKey;
   proposal.applicant       = event.params.applicant;
   proposal.proposer        = event.transaction.from;
-  proposal.sponsor         = Address.fromString("0");
+  proposal.sponsor         = Address.fromString(ZERO_ADDRESS);
   proposal.sharesRequested = event.params.sharesRequested;
   proposal.lootRequested   = event.params.lootRequested;
   proposal.tributeOffered  = event.params.tributeOffered;
@@ -218,7 +218,7 @@ export function handleSubmitProposal(event: SubmitProposal):void {
 
   // collect tribute from proposer and store it in Moloch ESCROW until the proposal is processed
   if(event.params.tributeOffered > BigInt.fromI32(0)){
-    let tokenId =  molochId.concat("-token-").concat(event.params.tributeToken.toHexString());
+    let tokenId =  molochId.concat("-token-").concat(event.params.tributeToken.toHex());
     addToBalance(molochId, ESCROW, tokenId, event.params.tributeOffered);
   }
   
@@ -227,7 +227,7 @@ export function handleSubmitProposal(event: SubmitProposal):void {
 // TODO - event SubmitVote(uint256 proposalId, uint256 indexed proposalIndex, address indexed delegateKey, address indexed memberAddress, uint8 uintVote);
 // handler: handleSubmitVote
 export function handleSubmitVote(event: SubmitVote):void{
-  let molochId = event.address.toHex();
+  let molochId = event.address.toHexString();
   let memberId = molochId.concat("-member-").concat(event.params.memberAddress.toHex());
   let proposalVotedId = molochId.concat("-proposal-").concat(event.params.proposalId.toString());
   let voteId = memberId.concat("-vote-").concat(event.params.proposalId.toString());
@@ -272,7 +272,7 @@ export function handleSubmitVote(event: SubmitVote):void{
 // TODO - event SponsorProposal(address indexed delegateKey, address indexed memberAddress, uint256 proposalId, uint256 proposalIndex, uint256 startingPeriod);
 // handler: handleSponsorProposal
 export function handleSponsorProposal(event:SponsorProposal):void{
-  let molochId = event.address.toHex();
+  let molochId = event.address.toHexString();
   let memberId = molochId.concat("-member-").concat(event.params.memberAddress.toHex());
   let sponsorProposalId = molochId.concat("-proposal-").concat(event.params.proposalId.toString());
 
@@ -324,7 +324,7 @@ export function handleSponsorProposal(event:SponsorProposal):void{
 // handler: handleProcessProposal
 export function handleProcessProposal(event: ProcessProposal):void{
   
-  let molochId = event.address.toHex();
+  let molochId = event.address.toHexString();
   let moloch = Moloch.load(molochId);
 
   let processProposalId = molochId.concat("-proposal-").concat(event.params.proposalId.toString());
@@ -333,8 +333,8 @@ export function handleProcessProposal(event: ProcessProposal):void{
   let applicantId = molochId.concat("-member-").concat(proposal.applicant.toHex());
   let member = Member.load(applicantId);
 
-  let tributeTokenId =  molochId.concat("-token-").concat(proposal.tributeToken.toHexString());
-  let paymentTokenId =  molochId.concat("-token-").concat(proposal.paymentToken.toHexString());
+  let tributeTokenId =  molochId.concat("-token-").concat(proposal.tributeToken.toHex());
+  let paymentTokenId =  molochId.concat("-token-").concat(proposal.paymentToken.toHex());
 
 
   let isNewMember = member != null && member.exists == true ? false :true;
@@ -406,7 +406,7 @@ export function handleProcessProposal(event: ProcessProposal):void{
 // handler: handleProcessGuildKickProposal
 export function handleProcessWhitelistProposal(event:ProcessWhitelistProposal):void{
 
-  let molochId = event.address.toHex();
+  let molochId = event.address.toHexString();
   let moloch = Moloch.load(molochId);
 
   let processProposalId = molochId.concat("-proposal-").concat(event.params.proposalId.toString());
