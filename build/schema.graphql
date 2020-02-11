@@ -98,8 +98,8 @@ type Vote @entity {
 type Proposal @entity {
   id: ID!
   "NOTE: tracks Proposals for multiple Moloch instances (no change required for upgrade)"
-  proposalIndex: BigInt!
-  proposalId: BigInt
+  proposalIndex: BigInt
+  proposalId: BigInt!
   moloch: Moloch!
   timestamp: String!
   member: Member!
