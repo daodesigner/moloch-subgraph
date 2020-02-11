@@ -10511,7 +10511,7 @@
   },
   "networks": {},
   "schemaVersion": "3.0.23",
-  "updatedAt": "2020-02-10T12:55:42.328Z",
+  "updatedAt": "2020-02-11T21:18:30.468Z",
   "devdoc": {
     "methods": {
       "availableFunds(address)": {

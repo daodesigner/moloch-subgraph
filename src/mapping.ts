@@ -9,7 +9,7 @@ let GUILD =  Address.fromString("0x000000000000000000000000000000000000beef");
 function loadOrCreateTokenBalance(molochId:string, member:Bytes, token:string):TokenBalance|null {
   let memberTokenBalanceId = token.concat("-member-").concat(member.toHex());
   let tokenBalance =  TokenBalance.load(memberTokenBalanceId);
-  let tokenBalanceDNE = tokenBalance?true:false;
+  let tokenBalanceDNE = tokenBalance == null ?true:false;
   if(tokenBalanceDNE){
     createMemberTokenBalance(molochId,member,token,BigInt.fromI32(0))
     return TokenBalance.load(memberTokenBalanceId);
@@ -34,7 +34,9 @@ function subtractFromBalance(molochId:string, member:Bytes, token:string, amount
   balance.save();
   return tokenBalanceId;
 }
+
 function internalTransfer(molochId:string, from:Bytes, to:Bytes, token:string, amount:BigInt):void {
+  log.info("Value = {internalTransfer}, other = {}", [""])
   subtractFromBalance(molochId, from, token, amount);
   addToBalance(molochId, to, token, amount);
 }
@@ -239,6 +241,7 @@ export function handleSubmitVote(event: SubmitVote):void{
   vote.member    = memberId;
   vote.uintVote  = event.params.uintVote;
 
+  vote.save();
   let moloch = Moloch.load(molochId);
   let proposal = Proposal.load(proposalVotedId);
   let member = Member.load(memberId);
@@ -284,7 +287,7 @@ export function handleSponsorProposal(event:SponsorProposal):void{
 
   let proposal = Proposal.load(sponsorProposalId);
 
-
+  //TODO: Debug fails silently to add; array comprehensions probably not working
   if (proposal.newMember){
     moloch.proposedToJoin.push(sponsorProposalId);
     moloch.save()
@@ -323,7 +326,7 @@ export function handleSponsorProposal(event:SponsorProposal):void{
 // TODO - event ProcessProposal(uint256 indexed proposalIndex, uint256 indexed proposalId, bool didPass);
 // handler: handleProcessProposal
 export function handleProcessProposal(event: ProcessProposal):void{
-  
+
   let molochId = event.address.toHexString();
   let moloch = Moloch.load(molochId);
 
@@ -367,7 +370,7 @@ export function handleProcessProposal(event: ProcessProposal):void{
       member.loot = member.loot.plus(proposal.lootRequested);
       member.save();
     }
-    
+
     //NOTE: Add shares/loot do intake tribute from escrow, payout from guild bank
     moloch.totalShares = moloch.totalShares.plus(proposal.sharesRequested);
     moloch.totalLoot = moloch.totalLoot.plus(proposal.lootRequested);
@@ -383,13 +386,13 @@ export function handleProcessProposal(event: ProcessProposal):void{
     internalTransfer(molochId, ESCROW, proposal.applicant, tributeTokenId ,proposal.tributeOffered);
   }
 
-  //NOTE: update ongoing proposals (that have been sponsored)
-  if (proposal.trade) {
-    //TODO:test
-    moloch.proposedToTrade.shift()
-  } else{
-    moloch.proposedToFund.shift()
-  }
+  //TODO: fix array comprehensions update ongoing proposals (that have been sponsored)
+  // if (proposal.trade) {
+  //   //TODO:test
+  //   moloch.proposedToTrade.shift()
+  // } else{
+  //   moloch.proposedToFund.shift()
+  // }
   proposal.processed = true;
   
 
