@@ -1,3 +1,4 @@
+require('dotenv').config()
 require('babel-register')
 require('babel-polyfill')
 const HDWalletProvider = require('@truffle/hdwallet-provider')
@@ -11,14 +12,14 @@ module.exports = {
       gasPrice: 1000000000,    // <-- Use this low gas price
       network_id: '*', // Match any network id
     },
-    ropsten: {
+    kovan: {
       provider: function() {
         return new HDWalletProvider(
           process.env.MNEMONIC,
-          `https://ropsten.infura.io/v3/${process.env.ROPSTEN_INFURA_API_KEY}`
+          `https://kovan.infura.io/v3/${process.env.ROPSTEN_INFURA_API_KEY}`
         )
       },
-      network_id: '3',
+      network_id: '42',
     },
   },
   compilers: {

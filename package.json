@@ -25,6 +25,7 @@
     "@truffle/contract": "^4.0.5",
     "@truffle/hdwallet-provider": "^1.0.4",
     "babel-polyfill": "^6.26.0",
+    "dotenv": "^8.2.0",
     "solc": "^0.5.3",
     "truffle": "^5.0.5"
   }
