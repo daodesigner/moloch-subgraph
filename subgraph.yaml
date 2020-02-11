@@ -8,7 +8,7 @@ dataSources:
     name: Moloch
     network: kovan
     source:
-      address: '0xA122f67b5db28ee7b730bcfBa3996F68CC839aBE'
+      address: '0xc73bB4DdD7Ac90fD20dDd6F1817e97a0AB183D4a'
       abi: Moloch
       startBlock: 16689700
     mapping:
