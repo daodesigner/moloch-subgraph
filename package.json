@@ -10,7 +10,7 @@
     "build": "graph build",
     "deploy": "graph deploy daodesigner/moloch-subgraph --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
     "deploy-local": "graph deploy daodesigner/moloch-subgraph --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
-    "ganache-cli": "ganache-cli -l 99900000  -m 'fetch local valvblack attend double eye excite planet primary install allow'"
+    "ganache-cli": "ganache-cli -l 99900000  -m 'fetch local valve black attend double eye excite planet primary install allow'"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.17.1",
