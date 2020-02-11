@@ -178,7 +178,7 @@ export function handleSubmitProposal(event: SubmitProposal):void {
   
   let newProposalId = molochId.concat("-proposal-").concat(event.params.proposalId.toString());
   let memberId = molochId.concat("-member-").concat(event.params.memberAddress.toHex());
-  let newMember = Member.load(molochId.concat("-member-").concat(event.params.applicant.toHex()))?false:true;
+  let newMember = Member.load(molochId.concat("-member-").concat(event.params.applicant.toHex())) == null?true:false;
   // For trades, members deposit tribute in the token they want to sell to the dao, and request payment in the token they wish to receive.
   let trade =  event.params.paymentToken != Address.fromI32(0) && event.params.tributeToken!= Address.fromI32(0) && event.params.tributeOffered > BigInt.fromI32(0) && event.params.paymentRequested > BigInt.fromI32(0);
   
@@ -289,15 +289,15 @@ export function handleSponsorProposal(event:SponsorProposal):void{
 
   //TODO: Debug fails silently to add; array comprehensions probably not working
   if (proposal.newMember){
-    moloch.proposedToJoin.push(sponsorProposalId);
+    moloch.proposedToJoin = moloch.proposedToJoin.concat([sponsorProposalId]);
     moloch.save()
   } 
   else if (proposal.whitelist){
-    moloch.proposedToWhitelist.push(sponsorProposalId);
+    moloch.proposedToWhitelist = moloch.proposedToWhitelist.concat([sponsorProposalId]);
     moloch.save()
   } 
   else if(proposal.guildkick){
-    moloch.proposedToKick.push(sponsorProposalId);
+    moloch.proposedToKick = moloch.proposedToKick.concat([sponsorProposalId]);
 
     let member = Member.load(memberId);
     member.proposedToKick = true;
@@ -306,11 +306,11 @@ export function handleSponsorProposal(event:SponsorProposal):void{
 
   } 
   else if (proposal.trade){
-    moloch.proposedToTrade.push(sponsorProposalId);
+    moloch.proposedToTrade = moloch.proposedToTrade.concat([sponsorProposalId]);
     moloch.save()
   }
   else {
-    moloch.proposedToFund.push(sponsorProposalId);
+    moloch.proposedToFund = moloch.proposedToFund.concat([sponsorProposalId]);
     moloch.save()
   }
 
@@ -386,13 +386,17 @@ export function handleProcessProposal(event: ProcessProposal):void{
     internalTransfer(molochId, ESCROW, proposal.applicant, tributeTokenId ,proposal.tributeOffered);
   }
 
-  //TODO: fix array comprehensions update ongoing proposals (that have been sponsored)
-  // if (proposal.trade) {
-  //   //TODO:test
-  //   moloch.proposedToTrade.shift()
-  // } else{
-  //   moloch.proposedToFund.shift()
-  // }
+  //NOTE: fixed array comprehensions update ongoing proposals (that have been sponsored)
+  if (proposal.trade) {
+    //TODO:test
+    moloch.proposedToTrade = moloch.proposedToTrade.filter(function(value, index, arr){return index > 0;});
+    
+  } else if(proposal.newMember){
+    moloch.proposedToJoin = moloch.proposedToJoin.filter(function(value, index, arr){return index > 0;});
+    
+  } else {
+    moloch.proposedToFund = moloch.proposedToFund.filter(function(value, index, arr){return index > 0;});
+  }
   proposal.processed = true;
   
 
@@ -439,7 +443,7 @@ export function handleProcessWhitelistProposal(event:ProcessWhitelistProposal):v
     
   }
   //NOTE: can only process proposals in order.
-  moloch.proposedToWhitelist.shift()
+  moloch.proposedToWhitelist = moloch.proposedToWhitelist.filter(function(value, index, arr){return index > 0;});
   proposal.processed = true;
 
   //NOTE: issue processing reward and return deposit
@@ -492,7 +496,7 @@ export function handleProcessGuildKickProposal(event:ProcessGuildKickProposal):v
   }
 
   //NOTE: can only process proposals in order, test shift array comprehension might have tp sprt first for this to work
-  moloch.proposedToKick.shift()
+  moloch.proposedToKick = moloch.proposedToKick.filter(function(value, index, arr){return index > 0;});
   proposal.processed = true;
 
   //NOTE: issue processing reward and return deposit
