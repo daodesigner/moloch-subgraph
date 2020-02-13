@@ -25,7 +25,8 @@ The SQL Data is exposed as entities defined in a gql schema file and served from
 6) Modify package.json to deploy to your subgraph from (2)
 7) yarn deploy
 8) Go to the subgraph explorer and type this into the query field:
-```{
+```
+{
   moloches(first: 1) {
     totalLoot
     totalShares
@@ -89,7 +90,8 @@ The SQL Data is exposed as entities defined in a gql schema file and served from
      }
     }
   }
-}```
+}
+```
 9) Hit run
 10) Grab the graphQL endpoint from subgraph explorer and query on dapp using something like Apollo
 11) ???
