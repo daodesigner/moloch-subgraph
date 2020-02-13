@@ -20,7 +20,7 @@ The SQL Data is exposed as entities defined in a gql schema file and served from
 2) Grab access token from dashboard, create a new subgraph
 3) cd into the repo and login on the cli using access token
 3) Set up truffle config and .env file for keys you'll use and network/infura endpoint
-4) Set up deploy config and run: truffle deploy <network>
+4) Set up deploy config on migration file and run: truffle deploy <network>
 5) Add contract address to subgraph config
 6) Modify package.json to deploy to your subgraph from (2)
 7) yarn deploy
