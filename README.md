@@ -42,14 +42,14 @@ The SQL Data is exposed as entities defined in a gql schema file and served from
       tokenTribute
       didRagequit
       tokenBalances{
+        tokenBalance
         token {
-       tokenAddress
-       whitelisted
-     }
-     tokenBalance
+          tokenAddress
+          whitelisted
+        }
       }
-    }
-    proposals{
+     }
+     proposals{
       proposalId
       proposalIndex
       applicant
@@ -75,18 +75,18 @@ The SQL Data is exposed as entities defined in a gql schema file and served from
       details
     }
     guildTokenBalance{
+      tokenBalance
       token {
        tokenAddress
        whitelisted
      }
-     tokenBalance
     }
     escrowTokenBalance{
+      tokenBalance
       token {
        tokenAddress
        whitelisted
      }
-     tokenBalance
     }
   }
 }```
