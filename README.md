@@ -22,9 +22,9 @@ The SQL Data is exposed as entities defined in a gql schema file and served from
 3) Set up truffle config and .env file for keys you'll use and network/infura endpoint
 4) Set up deploy config and run: truffle deploy <network>
 5) Add contract address to subgraph config
-6) Modify package.json to deploy to your subgraph from (1)
+6) Modify package.json to deploy to your subgraph from (2)
 7) yarn deploy
-8) Go to the subgraph explorer (can try on THIS one) and type this into the query field:
+8) Go to the subgraph explorer and type this into the query field:
 ```{
   moloches(first: 1) {
     totalLoot
