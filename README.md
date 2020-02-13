@@ -11,7 +11,7 @@ http://manifesto.designerdao.eth.link/
 
 **Broke**: graphprotocol is an event sourced database. You write handlers that are triggered by events that smart contracts fire, and contain biz logic which in turn writes state changes to a SQL database.
 
-(the logic is essentially transpiling the smart contract logic to TS so should look familiar as I kept all your naming conventions and some of your comments)
+(the logic is essentially transpiling the Moloch contract logic to TS so should look familiar)
 
 The SQL Data is exposed as entities defined in a gql schema file and served from a GraphQL endpoint exposed by the GraphProtocol which can be queried using the graphqlAPI
 
