@@ -510,20 +510,20 @@ export function handleProcessGuildKickProposal(event:ProcessGuildKickProposal):v
 }
 
 // event Ragequit(address indexed memberAddress, uint256 sharesToBurn, uint256 lootToBurn);
-// handler: handleProcessWhitelistProposal
+// handler: handleRagequit
 export function handleRagequit(event:Ragequit):void{
   
 }
 
 // event CancelProposal(uint256 indexed proposalIndex, address applicantAddress);
-// handler: handleProcessWhitelistProposal
+// handler: handleCancelProposal
 export function handleCancelProposal(event:CancelProposal):void{
 
 }
 
 // event UpdateDelegateKey(address indexed memberAddress, address newDelegateKey);
-// handler: handleProcessWhitelistProposal
-export function updateDelegateKey(event:CancelProposal):void{
+// handler: handleUpdateDelegateKey
+export function handleUpdateDelegateKey(event:UpdateDelegateKey):void{
   
 }
 
